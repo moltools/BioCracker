@@ -1,5 +1,6 @@
 """Module contains methods for making substrate specificity predictions with parasect."""
 
+import logging
 import os
 from pathlib import Path
 
@@ -7,7 +8,7 @@ import joblib
 from parasect.api import run_paras
 
 from biocracker.antismash import DomainRec
-from biocracker.config import PARAS_CACHE_DIR_NAME, PARAS_MODEL_DOWNLOAD_URL
+from biocracker.config import LOGGER_NAME, PARAS_CACHE_DIR_NAME, PARAS_MODEL_DOWNLOAD_URL
 from biocracker.helpers import download_and_prepare, get_biocracker_cache_dir
 
 _PARAS_MODEL_CACHE: dict[str, object] = {}
@@ -52,6 +53,8 @@ def predict_amp_domain_substrate(
     .. note:: returns None if the domain is not of type "AMP-binding"
     .. note:: returns empty list if no predictions are above the threshold, or an error occurs
     """
+    logger = logging.getLogger(LOGGER_NAME)
+
     if not isinstance(domain, DomainRec):
         raise TypeError("Domain must be an instance of DomainRec")
 
@@ -96,7 +99,8 @@ def predict_amp_domain_substrate(
         preds = list(zip(result.prediction_labels, result._prediction_smiles, result.predictions, strict=True))
         preds = [(name, smiles, round(score, 3)) for name, smiles, score in preds if score >= pred_threshold]
         preds.sort(key=lambda x: x[1], reverse=True)
-    except Exception:
+    except Exception as e:
+        logger.error(f"{e}\nError during parasect prediction for domain {domain.name}, returning no predictions")
         preds = []
 
     return preds
