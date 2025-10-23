@@ -1,0 +1,82 @@
+[project]
+name = "biocracker"
+version = "1.0.0"
+description = "BioCracker is a parser for antiSMASH output GenBank files"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = [
+    "LICENSE",
+]
+authors = [
+    { name = "David Meijer", email = "david.meijer@wur.nl" }
+]
+keywords = ["parser", "antismash"]
+
+dependencies = [
+    "biopython",
+    "tqdm",
+    "paras @ git+https://github.com/bthedragonmaster/parasect.git@v2.0.0"
+]
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics"
+]
+
+[project.urls]
+Homepage = "https://github.com/moltools/biocracker"
+Repository = "https://github.com/moltools/biocracker"
+Issues = "https://github.com/moltools/biocracker/issues"
+Documentation = "https://github.com/moltools/biocracker#readme"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff"
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/biocracker"]
+sources = ["src"]
+
+# -------------------------
+# Hatch env + scripts
+# -------------------------
+[tool.hatch.envs.dev]
+features = ["dev"]
+python = "3.10"
+
+[tool.hatch.envs.dev.scripts]
+lint = "ruff check ."
+fmt = "ruff format ."
+test = "pytest -q"
+
+# -------------------------
+# Ruff
+# -------------------------
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["build", "dist", ".venv", "venv", "typings"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/data/**/*" = ["E501"]
