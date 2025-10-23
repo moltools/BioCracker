@@ -12,6 +12,16 @@ We recommend installing BioCracker in a virtual conda environment, based on the 
 conda env create -f environment.yml
 ```
 
+### Installing HMMER2 on macOS Arm64
+
+Use Rosetta to install the x86_64 version of HMMER2:
+
+```bash
+conda activate biocracker
+conda config --env --set subdir osx-64
+conda install hmmer2
+```
+
 ## Development
 
 To set up a development environment, use the provided `environment.dev.yml` file:
