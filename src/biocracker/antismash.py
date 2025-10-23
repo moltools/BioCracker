@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
 from io import StringIO
-from typing import Any
+from typing import Any, Literal
 
 from Bio import SeqIO
 from Bio.SeqFeature import FeatureLocation, SeqFeature
@@ -137,6 +137,37 @@ class GeneRec:
 
 
 @dataclass
+class CandidateClusterRec:
+    """
+    Data class representing a candidate cluster record parsed from antiSMASH output.
+
+    :param record_id: cluster record ID
+    :param accession: cluster number/accession in gbk file
+    :param start: cluster start position
+    :param end: cluster end position
+    :param product_tags: list of product tags
+    :param genes: list of GeneRec instances
+    """
+
+    record_id: str
+    accession: int | None
+    start: int
+    end: int
+    product_tags: list[str]
+    genes: list[GeneRec] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert CandidateClusterRec instance to dictionary.
+
+        :return: dictionary representation of CandidateClusterRec
+        """
+        d = asdict(self)
+        d["genes"] = [g.to_dict() for g in self.genes]
+        return d
+
+
+@dataclass
 class RegionRec:
     """
     Data class representing a region record parsed from antiSMASH output.
@@ -175,6 +206,16 @@ def _iter_regions(record: SeqRecord) -> list[SeqFeature]:
     :return: list of region SeqFeature objects
     """
     return [f for f in record.features if f.type == "region"]
+
+
+def _iter_candidate_clusters(record: SeqRecord) -> list[SeqFeature]:
+    """
+    Iterate over candidate cluster features in a Biopython SeqRecord.
+
+    :param record: Biopython SeqRecord object
+    :return: list of candidate cluster SeqFeature objects
+    """
+    return [f for f in record.features if f.type == "cand_cluster"]
 
 
 def _iter_cds(record: SeqRecord) -> list[SeqFeature]:
@@ -269,6 +310,63 @@ def _gene_rec_from_feat(feat: SeqFeature) -> GeneRec:
     )
 
 
+def _collect_candidate_cluster(record: SeqRecord) -> list[CandidateClusterRec]:
+    """ """
+    clusters = _iter_candidate_clusters(record)
+    cds_list = _iter_cds(record)
+    dom_list = _iter_domains(record)
+
+    cluster_recs: list[CandidateClusterRec] = []
+
+    for cc in clusters:
+        _, cs, ce = _start_end(cc)
+
+        # Try several common qualifier names for the index
+        acc_vals = (
+            cc.qualifiers.get("candidate_cluster_number")
+            or cc.qualifiers.get("cand_cluster_number")
+            or cc.qualifiers.get("cluster_number")
+            or cc.qualifiers.get("cluster_idx")
+            or [0]
+        )
+        accession = int(acc_vals[0]) if acc_vals else None
+
+        products = cc.qualifiers.get("product", []) or []
+
+        # Genes inside cluster, sorted by coordinate
+        gene_feats = [g for g in cds_list if _in_bounds(g, cc)]
+        gene_feats.sort(key=lambda gf: (int(gf.location.start), int(gf.location.end)))
+
+        genes: list[GeneRec] = []
+        for gf in gene_feats:
+            g = _gene_rec_from_feat(gf)
+
+            # Domains inside this gene, sorted by genomic start
+            gene_doms = [df for df in dom_list if _in_bounds(df, gf)]
+            gene_doms.sort(key=lambda df: (int(df.location.start), int(df.location.end)))
+            dom_recs = [_domain_rec_from_feat(dd) for dd in gene_doms]
+
+            # Oritentation normalization
+            if g.strand == -1:
+                dom_recs = dom_recs[::-1]
+
+            g.domains = dom_recs
+            genes.append(g)
+
+        cluster_recs.append(
+            CandidateClusterRec(
+                record_id=record.id,
+                accession=accession,
+                start=cs,
+                end=ce,
+                product_tags=products,
+                genes=genes,
+            )
+        )
+
+    return cluster_recs
+
+
 def _collect_region(record: SeqRecord) -> list[RegionRec]:
     """
     Collect region records from a Biopython SeqRecord.
@@ -326,33 +424,49 @@ def _collect_region(record: SeqRecord) -> list[RegionRec]:
     return region_recs
 
 
-def parse_region_gbk_string(src: str) -> list[RegionRec]:
+def parse_region_gbk_string(
+    src: str,
+    top_level: Literal["region", "cand_cluster"] = "region",
+) -> list[RegionRec]:
     """
     Parse antiSMASH region GenBank string into RegionRec instances.
 
     :param src: GenBank formatted string
+    :param top_level: top-level feature to parse ('region' or 'cand_cluster')
     :return: list of RegionRec instances
+    :raises AssertionError: if top_level is not 'region' or 'cand_cluster'
     """
     handle = StringIO(src)
     out: list[RegionRec] = []
 
     for record in SeqIO.parse(handle, "genbank"):
-        out.extend(_collect_region(record))
+        if top_level == "region":
+            out.extend(_collect_region(record))
+        elif top_level == "cand_cluster":
+            out.extend(_collect_candidate_cluster(record))
+        else:
+            raise ValueError(f"Unknown top_level '{top_level}'; must be 'region' or 'cand_cluster'")
 
     return out
 
 
-def parse_region_gbk_file(filepath: str) -> list[RegionRec]:
+def parse_region_gbk_file(filepath: str, top_level: Literal["region", "cand_cluster"] = "region") -> list[RegionRec]:
     """
     Parse antiSMASH region GenBank file into RegionRec instances.
 
     :param filepath: path to GenBank file
+    :param top_level: top-level feature to parse ('region' or 'cand_cluster')
     :return: list of RegionRec instances
     """
     out: list[RegionRec] = []
 
     with open(filepath) as handle:
         for record in SeqIO.parse(handle, "genbank"):
-            out.extend(_collect_region(record))
+            if top_level == "region":
+                out.extend(_collect_region(record))
+            elif top_level == "cand_cluster":
+                out.extend(_collect_candidate_cluster(record))
+            else:
+                raise ValueError(f"Unknown top_level '{top_level}'; must be 'region' or 'cand_cluster'")
 
     return out

@@ -32,22 +32,23 @@ def main() -> None:
     """
     args = cli()
     gbk_path = args.gbk
-    regions = parse_region_gbk_file(gbk_path)
-    logger.info(f" > Parsed {len(regions)} region(s) from {gbk_path}")
+    target_name = "cand_cluster"
+    targets = parse_region_gbk_file(gbk_path, top_level=target_name)
+    logger.info(f" > Parsed {len(targets)} {target_name}(s) from {gbk_path}")
 
-    for region in regions:
-        region_accession = region.accession if region.accession is not None else 0
+    for target in targets:
+        region_accession = target.accession if target.accession is not None else 0
         logger.info(
             f" "
-            f"> (Region at {region.start} - {region.end}) "
-            f"{region.record_id}.region{region_accession:03d} : {region.product_tags}"
+            f"> ({target_name} at {target.start} - {target.end}) "
+            f"{target.record_id}.{target_name}{region_accession:03d} : {target.product_tags}"
         )
-        len_start = max([len(str(gene.start)) for gene in region.genes])
-        len_end = max([len(str(gene.end)) for gene in region.genes])
-        for gene in region.genes:
+        len_start = max([len(str(gene.start)) for gene in target.genes])
+        len_end = max([len(str(gene.end)) for gene in target.genes])
+        for gene in target.genes:
             logger.info(
                 f"   "
-                f"> (Gene at {gene.start:>{len_start}} - {gene.end:>{len_end}} on strand {gene.strand:>2}) "
+                f"> (gene at {gene.start:>{len_start}} - {gene.end:>{len_end}} on strand {gene.strand:>2}) "
                 f"{gene.name} : {gene.product}"
             )
             for domain in gene.domains:
@@ -60,7 +61,7 @@ def main() -> None:
                     repr_domain_preds = ""
                 logger.info(
                     f"     "
-                    f"> (Domain at {domain.start:>{domain_len_start}} - {domain.end:>{domain_len_end}}) "
+                    f"> (domain at {domain.start:>{domain_len_start}} - {domain.end:>{domain_len_end}}) "
                     f"{domain.kind} {repr_domain_preds}"
                 )
 
