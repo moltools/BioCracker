@@ -55,7 +55,7 @@ def get_biocracker_cache_dir(path: str | Path | None = None) -> Path:
 def _slug_url(url: str) -> str:
     """
     Deterministic slug from URL (first 16 hex chars of SHA256).
-    
+
     :param url: URL string
     :return: slug string
     .. note:: this is used to create unique cache directories per URL
@@ -77,6 +77,7 @@ def _guess_filename_from_url(url: str) -> str | None:
     :return: filename string or None
     """
     from urllib.parse import urlparse
+
     path = urlparse(url).path
 
     if not path:
@@ -90,7 +91,7 @@ def _guess_filename_from_url(url: str) -> str | None:
 def _download_with_progress(url: str, dest: Path, chunk_size: int = 1024 * 1024) -> None:
     """
     Stream download to `dest` with tqdm progress.
-    
+
     :param url: URL to download
     :param dest: destination Path
     :param chunk_size: size of read chunks in bytes
@@ -106,16 +107,19 @@ def _download_with_progress(url: str, dest: Path, chunk_size: int = 1024 * 1024)
     tmp = Path(tmp_path)
     try:
         req = Request(url, headers={"User-Agent": "biocracker-downloader/1.0"})
-    
+
         with urlopen(req) as r:
             total = int(r.headers.get("Content-Length") or 0)
-            with open(tmp, "wb") as f, tqdm(
-                total=total if total > 0 else None,
-                unit="B",
-                unit_scale=True,
-                unit_divisor=1024,
-                desc=f"Downloading {dest.name}",
-            ) as pbar:
+            with (
+                open(tmp, "wb") as f,
+                tqdm(
+                    total=total if total > 0 else None,
+                    unit="B",
+                    unit_scale=True,
+                    unit_divisor=1024,
+                    desc=f"Downloading {dest.name}",
+                ) as pbar,
+            ):
                 while True:
                     chunk = r.read(chunk_size)
                     if not chunk:

@@ -2,6 +2,5 @@
 
 import os
 
-
 LOGGER_NAME = "biocracker"
 LOGGER_LEVEL = os.getenv("BIOCRACKER_LOG_LEVEL", "INFO").upper()
