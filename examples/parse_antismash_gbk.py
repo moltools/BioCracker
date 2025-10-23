@@ -7,7 +7,7 @@ import logging
 
 from biocracker.antismash import parse_region_gbk_file
 from biocracker.config import LOGGER_NAME, LOGGER_LEVEL
-from biocracker.parasect import predict_amp_domain_substrate
+from biocracker.paras import predict_amp_domain_substrate
 
 
 # Setup logging
