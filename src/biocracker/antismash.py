@@ -284,7 +284,7 @@ def _collect_region(record: SeqRecord) -> list[RegionRec]:
 
     for reg in regions:
         _, rs, re = _start_end(reg)
-        
+
         accessions = reg.qualifiers.get("region_number", [0])
         accession = int(accessions[0]) if accessions else None
 

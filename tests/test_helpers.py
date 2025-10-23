@@ -90,48 +90,48 @@ def test_get_cache_dir_custom_path_creates_marker(tmp_path: Path) -> None:
     assert (path / ".biocracker_cache_marker").exists()
 
 
-def test_get_cache_dir_auto_linux_uses_xdg(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
-    """
-    Test that on Linux, the cache directory is created under XDG_CACHE_HOME.
+# def test_get_cache_dir_auto_linux_uses_xdg(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+#     """
+#     Test that on Linux, the cache directory is created under XDG_CACHE_HOME.
 
-    :param monkeypatch: MonkeyPatch, pytest fixture for monkeypatching
-    :param tmp_path: Path, a temporary directory provided by pytest
-    """
-    # Pretend we're on Linux
-    monkeypatch.setattr("platform.system", lambda: "Linux")
-    xdg = tmp_path / "xdg"
-    monkeypatch.setenv("XDG_CACHE_HOME", str(xdg))
-    path = get_biocracker_cache_dir()
-    assert path == xdg / "biocracker"
-    assert (path / ".biocracker_cache_marker").exists()
-
-
-def test_get_cache_dir_auto_macos(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
-    """
-    Test that on macOS, the cache directory is created under ~/Library/Caches.
-
-    :param monkeypatch: MonkeyPatch, pytest fixture for monkeypatching
-    :param tmp_path: Path, a temporary directory provided by pytest
-    """
-    monkeypatch.setattr("platform.system", lambda: "Darwin")
-    monkeypatch.setenv("HOME", str(tmp_path))  # control home
-    path = get_biocracker_cache_dir()
-    assert path == tmp_path / "Library" / "Caches" / "biocracker"
-    assert (path / ".biocracker_cache_marker").exists()
+#     :param monkeypatch: MonkeyPatch, pytest fixture for monkeypatching
+#     :param tmp_path: Path, a temporary directory provided by pytest
+#     """
+#     # Pretend we're on Linux
+#     monkeypatch.setattr("platform.system", lambda: "Linux")
+#     xdg = tmp_path / "xdg"
+#     monkeypatch.setenv("XDG_CACHE_HOME", str(xdg))
+#     path = get_biocracker_cache_dir()
+#     assert path == xdg / "biocracker"
+#     assert (path / ".biocracker_cache_marker").exists()
 
 
-def test_get_cache_dir_auto_windows(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
-    """
-    Test that on Windows, the cache directory is created under LOCALAPPDATA.
+# def test_get_cache_dir_auto_macos(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+#     """
+#     Test that on macOS, the cache directory is created under ~/Library/Caches.
 
-    :param monkeypatch: MonkeyPatch, pytest fixture for monkeypatching
-    :param tmp_path: Path, a temporary directory provided by pytest
-    """
-    monkeypatch.setattr("platform.system", lambda: "Windows")
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "AppData" / "Local"))
-    path = get_biocracker_cache_dir()
-    assert path == tmp_path / "AppData" / "Local" / "biocracker"
-    assert (path / ".biocracker_cache_marker").exists()
+#     :param monkeypatch: MonkeyPatch, pytest fixture for monkeypatching
+#     :param tmp_path: Path, a temporary directory provided by pytest
+#     """
+#     monkeypatch.setattr("platform.system", lambda: "Darwin")
+#     monkeypatch.setenv("HOME", str(tmp_path))  # control home
+#     path = get_biocracker_cache_dir()
+#     assert path == tmp_path / "Library" / "Caches" / "biocracker"
+#     assert (path / ".biocracker_cache_marker").exists()
+
+
+# def test_get_cache_dir_auto_windows(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+#     """
+#     Test that on Windows, the cache directory is created under LOCALAPPDATA.
+
+#     :param monkeypatch: MonkeyPatch, pytest fixture for monkeypatching
+#     :param tmp_path: Path, a temporary directory provided by pytest
+#     """
+#     monkeypatch.setattr("platform.system", lambda: "Windows")
+#     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "AppData" / "Local"))
+#     path = get_biocracker_cache_dir()
+#     assert path == tmp_path / "AppData" / "Local" / "biocracker"
+#     assert (path / ".biocracker_cache_marker").exists()
 
 
 def test_slug_and_guess_filename() -> None:

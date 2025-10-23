@@ -1,15 +1,14 @@
 """Module contains methods for making substrate specificity predictions with parasect."""
 
-import joblib
 import os
 from pathlib import Path
 
+import joblib
 from parasect.api import run_paras
 
 from biocracker.antismash import DomainRec
 from biocracker.config import PARAS_CACHE_DIR_NAME, PARAS_MODEL_DOWNLOAD_URL
 from biocracker.helpers import download_and_prepare, get_biocracker_cache_dir
-
 
 _PARAS_MODEL_CACHE: dict[str, object] = {}
 
@@ -58,14 +57,14 @@ def predict_amp_domain_substrate(
 
     if domain.kind != "AMP-binding":
         return None
-    
+
     # Define cache directory
     cache_dir = (
         Path(cache_dir_override)
         if cache_dir_override is not None
         else get_biocracker_cache_dir() / PARAS_CACHE_DIR_NAME
     )
-    
+
     # Load parasect model if not provided
     if model is None:
         os.makedirs(cache_dir, exist_ok=True)
@@ -94,10 +93,10 @@ def predict_amp_domain_substrate(
         )
         assert len(results) == 1, "Expected exactly one parasect result for singular AMP-binding domain"
         result = results[0]
-        preds = list(zip(result.prediction_labels, result._prediction_smiles, result.predictions))
+        preds = list(zip(result.prediction_labels, result._prediction_smiles, result.predictions, strict=True))
         preds = [(name, smiles, round(score, 3)) for name, smiles, score in preds if score >= pred_threshold]
         preds.sort(key=lambda x: x[1], reverse=True)
-    except Exception as e:
+    except Exception:
         preds = []
-    
+
     return preds

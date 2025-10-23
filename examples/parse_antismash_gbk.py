@@ -6,9 +6,8 @@ import argparse
 import logging
 
 from biocracker.antismash import parse_region_gbk_file
-from biocracker.config import LOGGER_NAME, LOGGER_LEVEL
+from biocracker.config import LOGGER_LEVEL, LOGGER_NAME
 from biocracker.paras import predict_amp_domain_substrate
-
 
 # Setup logging
 logger = logging.getLogger(LOGGER_NAME)
@@ -37,11 +36,19 @@ def main() -> None:
 
     for region in regions:
         region_accession = region.accession if region.accession is not None else 0
-        logger.info(f" > (Region at {region.start} - {region.end}) {region.record_id}.region{region_accession:03d} : {region.product_tags}")
+        logger.info(
+            f" "
+            f"> (Region at {region.start} - {region.end}) "
+            f"{region.record_id}.region{region_accession:03d} : {region.product_tags}"
+        )
         len_start = max([len(str(gene.start)) for gene in region.genes])
         len_end = max([len(str(gene.end)) for gene in region.genes])
         for gene in region.genes:
-            logger.info(f"   > (Gene at {gene.start:>{len_start}} - {gene.end:>{len_end}} on strand {gene.strand:>2}) {gene.name} : {gene.product}")
+            logger.info(
+                f"   "
+                f"> (Gene at {gene.start:>{len_start}} - {gene.end:>{len_end}} on strand {gene.strand:>2}) "
+                f"{gene.name} : {gene.product}"
+            )
             for domain in gene.domains:
                 domain_len_start = max([len(str(d.start)) for d in gene.domains])
                 domain_len_end = max([len(str(d.end)) for d in gene.domains])
@@ -50,7 +57,12 @@ def main() -> None:
                     repr_domain_preds = f"(preds: {domain_preds})"
                 else:
                     repr_domain_preds = ""
-                logger.info(f"     > (Domain at {domain.start:>{domain_len_start}} - {domain.end:>{domain_len_end}}) {domain.kind} {repr_domain_preds}")
+                logger.info(
+                    f"     "
+                    f"> (Domain at {domain.start:>{domain_len_start}} - {domain.end:>{domain_len_end}}) "
+                    f"{domain.kind} {repr_domain_preds}"
+                )
+
 
 if __name__ == "__main__":
     main()
