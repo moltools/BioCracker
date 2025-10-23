@@ -12,6 +12,8 @@ from urllib.request import Request, urlopen
 
 from tqdm import tqdm
 
+from biocracker.config import NAME_CACHE_DIR
+
 
 def get_biocracker_cache_dir(path: str | Path | None = None) -> Path:
     """
@@ -41,7 +43,7 @@ def get_biocracker_cache_dir(path: str | Path | None = None) -> Path:
         else:
             base = Path(os.getenv("XDG_CACHE_HOME", Path.home() / ".cache"))
 
-        cache_dir = base / "biocracker"
+        cache_dir = base / NAME_CACHE_DIR
 
     # Create directory and marker file
     cache_dir.mkdir(parents=True, exist_ok=True)

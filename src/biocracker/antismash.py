@@ -142,6 +142,7 @@ class RegionRec:
     Data class representing a region record parsed from antiSMASH output.
 
     :param record_id: region record ID
+    :param accession: region number/accession in gbk file
     :param start: region start position
     :param end: region end position
     :param product_tags: list of product tags
@@ -149,6 +150,7 @@ class RegionRec:
     """
 
     record_id: str
+    accession: int | None
     start: int
     end: int
     product_tags: list[str]
@@ -282,6 +284,10 @@ def _collect_region(record: SeqRecord) -> list[RegionRec]:
 
     for reg in regions:
         _, rs, re = _start_end(reg)
+        
+        accessions = reg.qualifiers.get("region_number", [0])
+        accession = int(accessions[0]) if accessions else None
+
         products = reg.qualifiers.get("product", []) or []
 
         # Genes inside region, sorted by coordinate
@@ -309,6 +315,7 @@ def _collect_region(record: SeqRecord) -> list[RegionRec]:
         region_recs.append(
             RegionRec(
                 record_id=record.id,
+                accession=accession,
                 start=rs,
                 end=re,
                 product_tags=products,
