@@ -98,7 +98,8 @@ def predict_amp_domain_substrate(
         result = results[0]
         preds = list(zip(result.prediction_labels, result._prediction_smiles, result.predictions, strict=True))
         preds = [(name, smiles, round(score, 3)) for name, smiles, score in preds if score >= pred_threshold]
-        preds.sort(key=lambda x: x[1], reverse=True)
+        # Highest score first
+        preds.sort(key=lambda x: x[2], reverse=True)
     except Exception as e:
         logger.error(f"{e}\nError during paras prediction for domain {domain.name}, returning no predictions")
         preds = []

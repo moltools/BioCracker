@@ -21,8 +21,18 @@ def cli() -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gbk", type=str, required=True, help="Path to the antiSMASH GenBank file")
-    parser.add_argument("--thresh", type=float, default=0.1, help="Threshold for substrate prediction (default: 0.1)")
+    parser.add_argument(
+        "--gbk", type=str, required=True,
+        help="Path to the antiSMASH GenBank file"
+    )
+    parser.add_argument(
+        "--toplevel", type=str, choices=["cand_cluster", "region"], default="cand_cluster",
+        help="Top level feature to parse (default: cand_cluster)"
+    )
+    parser.add_argument(
+        "--thresh", type=float, default=0.1,
+        help="Threshold for substrate prediction (default: 0.1)"
+    )
     return parser.parse_args()
 
 
@@ -32,7 +42,7 @@ def main() -> None:
     """
     args = cli()
     gbk_path = args.gbk
-    target_name = "cand_cluster"
+    target_name = args.toplevel
     targets = parse_region_gbk_file(gbk_path, top_level=target_name)
     logger.info(f" > Parsed {len(targets)} {target_name}(s) from {gbk_path}")
 
@@ -56,14 +66,20 @@ def main() -> None:
                 domain_len_end = max([len(str(d.end)) for d in gene.domains])
                 if domain.kind == "AMP-binding":
                     domain_preds = predict_amp_domain_substrate(domain, pred_threshold=args.thresh)
-                    repr_domain_preds = f"(preds: {[(name, score) for name, _, score in domain_preds]})"
                 else:
-                    repr_domain_preds = ""
+                    domain_preds = []
                 logger.info(
                     f"     "
                     f"> (domain at {domain.start:>{domain_len_start}} - {domain.end:>{domain_len_end}}) "
-                    f"{domain.kind} {repr_domain_preds}"
+                    f"{domain.kind}"
                 )
+                if domain_preds is not None:
+                    if domain_preds:
+                        for name, smiles, score in domain_preds:
+                            logger.info(
+                                f"       "
+                                f"> Predicted substrate: {name} (SMILES: {smiles}) with score {score}"
+                            )
 
 
 if __name__ == "__main__":
