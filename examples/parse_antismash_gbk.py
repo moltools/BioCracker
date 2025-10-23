@@ -22,7 +22,7 @@ def cli() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--gbk", type=str, required=True, help="Path to the antiSMASH GenBank file")
-    parser.add_argument("--thresh", type=float, default=0.1, help="Threshold for substrate prediction")
+    parser.add_argument("--thresh", type=float, default=0.1, help="Threshold for substrate prediction (default: 0.1)")
     return parser.parse_args()
 
 
