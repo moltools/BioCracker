@@ -22,6 +22,7 @@ def cli() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--gbk", type=str, required=True, help="Path to the antiSMASH GenBank file")
+    parser.add_argument("--thresh", type=float, default=0.1, help="Threshold for substrate prediction")
     return parser.parse_args()
 
 
@@ -53,8 +54,8 @@ def main() -> None:
                 domain_len_start = max([len(str(d.start)) for d in gene.domains])
                 domain_len_end = max([len(str(d.end)) for d in gene.domains])
                 if domain.kind == "AMP-binding":
-                    domain_preds = predict_amp_domain_substrate(domain)
-                    repr_domain_preds = f"(preds: {domain_preds})"
+                    domain_preds = predict_amp_domain_substrate(domain, pred_threshold=args.thresh)
+                    repr_domain_preds = f"(preds: {[(name, score) for name, _, score in domain_preds]})"
                 else:
                     repr_domain_preds = ""
                 logger.info(
