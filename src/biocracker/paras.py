@@ -1,11 +1,11 @@
-"""Module contains methods for making substrate specificity predictions with parasect."""
+"""Module contains methods for making substrate specificity predictions with paras."""
 
 import logging
 import os
 from pathlib import Path
 
 import joblib
-from parasect.api import run_paras
+from parasect.api import run_paras  # module is called parasect, but we are using the paras model
 
 from biocracker.antismash import DomainRec
 from biocracker.config import LOGGER_NAME, PARAS_CACHE_DIR_NAME, PARAS_MODEL_DOWNLOAD_URL
@@ -14,12 +14,12 @@ from biocracker.helpers import download_and_prepare, get_biocracker_cache_dir
 _PARAS_MODEL_CACHE: dict[str, object] = {}
 
 
-def _load_parasect_model(cache_dir: Path) -> object:
+def _load_paras_model(cache_dir: Path) -> object:
     """
-    Load the Parasect model from disk (cached in memory for reuse).
+    Load the paras model from disk (cached in memory for reuse).
 
     :param cache_dir: Path to the cache directory
-    :return: loaded Parasect model
+    :return: loaded paras model
     """
     global _PARAS_MODEL_CACHE
 
@@ -42,11 +42,11 @@ def predict_amp_domain_substrate(
     pred_threshold: float = 0.5,
 ) -> list[tuple[str, str, float]] | None:
     """
-    Predict substrate specificity for a given AMP-binding domain using Parasect.
+    Predict substrate specificity for a given AMP-binding domain using paras.
 
     :param domain: DomainRec object representing the AMP-binding domain
     :param cache_dir_override: Optional path to override the default cache directory
-    :param model: Optional already loaded parasect model, skip download and loading if provided
+    :param model: Optional already loaded paras model, skip download and loading if provided
     :param pred_threshold: prediction threshold for substrate specificity (default: 0.5)
     :return: list of tuples with all predicted substrates as (name, smiles, score) above threshold
     :raises TypeError: if domain is not an instance of DomainRec
@@ -68,12 +68,12 @@ def predict_amp_domain_substrate(
         else get_biocracker_cache_dir() / PARAS_CACHE_DIR_NAME
     )
 
-    # Load parasect model if not provided
+    # Load paras model if not provided
     if model is None:
         os.makedirs(cache_dir, exist_ok=True)
-        model: object = _load_parasect_model(str(cache_dir))
+        model: object = _load_paras_model(str(cache_dir))
 
-    tmp_dir = cache_dir / "temp_parasect"
+    tmp_dir = cache_dir / "temp_paras"
     os.makedirs(tmp_dir, exist_ok=True)
 
     # Prep fasta
@@ -85,7 +85,7 @@ def predict_amp_domain_substrate(
     if not seq:
         return []
 
-    # Make prediction with parasect
+    # Make prediction with paras
     try:
         results = run_paras(
             selected_input=fasta,
@@ -94,13 +94,13 @@ def predict_amp_domain_substrate(
             model=model,
             use_structure_guided_alignment=False,
         )
-        assert len(results) == 1, "Expected exactly one parasect result for singular AMP-binding domain"
+        assert len(results) == 1, "Expected exactly one paras result for singular AMP-binding domain"
         result = results[0]
         preds = list(zip(result.prediction_labels, result._prediction_smiles, result.predictions, strict=True))
         preds = [(name, smiles, round(score, 3)) for name, smiles, score in preds if score >= pred_threshold]
         preds.sort(key=lambda x: x[1], reverse=True)
     except Exception as e:
-        logger.error(f"{e}\nError during parasect prediction for domain {domain.name}, returning no predictions")
+        logger.error(f"{e}\nError during paras prediction for domain {domain.name}, returning no predictions")
         preds = []
 
     return preds
