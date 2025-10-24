@@ -21,18 +21,15 @@ def cli() -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
+    parser.add_argument("--gbk", type=str, required=True, help="Path to the antiSMASH GenBank file")
     parser.add_argument(
-        "--gbk", type=str, required=True,
-        help="Path to the antiSMASH GenBank file"
+        "--toplevel",
+        type=str,
+        choices=["cand_cluster", "region"],
+        default="cand_cluster",
+        help="Top level feature to parse (default: cand_cluster)",
     )
-    parser.add_argument(
-        "--toplevel", type=str, choices=["cand_cluster", "region"], default="cand_cluster",
-        help="Top level feature to parse (default: cand_cluster)"
-    )
-    parser.add_argument(
-        "--thresh", type=float, default=0.1,
-        help="Threshold for substrate prediction (default: 0.1)"
-    )
+    parser.add_argument("--thresh", type=float, default=0.1, help="Threshold for substrate prediction (default: 0.1)")
     return parser.parse_args()
 
 
@@ -76,10 +73,7 @@ def main() -> None:
                 if domain_preds is not None:
                     if domain_preds:
                         for name, smiles, score in domain_preds:
-                            logger.info(
-                                f"       "
-                                f"> Predicted substrate: {name} (SMILES: {smiles}) with score {score}"
-                            )
+                            logger.info(f"       > Predicted substrate: {name} (SMILES: {smiles}) with score {score}")
 
 
 if __name__ == "__main__":
