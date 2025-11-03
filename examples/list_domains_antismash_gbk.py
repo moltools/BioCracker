@@ -9,6 +9,7 @@ import os
 from biocracker.antismash import parse_region_gbk_file
 from biocracker.config import LOGGER_LEVEL, LOGGER_NAME
 from biocracker.paras import predict_amp_domain_substrate
+from biocracker.text_mining import get_default_tokenspecs, mine_virtual_tokens
 
 # Setup logging
 logger = logging.getLogger(LOGGER_NAME)
@@ -90,6 +91,12 @@ def main() -> None:
                             smiles = domain_pred.get("substrate_smiles", "N/A")
                             score = domain_pred.get("score", 0.0)
                             logger.info(f"       > Predicted substrate: {name} (SMILES: '{smiles}') with score {score}")
+
+        tokenspecs = get_default_tokenspecs()
+        for mined_tokenspec in mine_virtual_tokens(target, tokenspecs):
+            token_name = mined_tokenspec.get("token", "Unknown")
+            token_score = mined_tokenspec.get("score", 0.0)
+            logger.info(f"   > Mined tokenspec: {token_name} ({token_score})")
 
 
 if __name__ == "__main__":

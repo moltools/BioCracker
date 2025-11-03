@@ -8,6 +8,7 @@ from biocracker.antismash import CandidateClusterRec, RegionRec
 TOKENSPEC_SIDEROPHORE: dict = {
     "any": {
         # Direct words
+        "NI-siderophore",
         "siderophore",
         "iron chelator",
         "feo-",
@@ -48,7 +49,7 @@ TOKENSPEC_SIDEROPHORE: dict = {
     },
     "weight": 1.0,
     "bonus_weight": 0.5,
-    "min_score": 2.0,
+    "min_score": 4.0,
 }
 
 TOKENSPEC_LIPOPEPTIDE: dict = {
@@ -267,7 +268,7 @@ def mine_virtual_tokens(rec: RegionRec | CandidateClusterRec, tokenspecs: Mappin
         bonus_weight = float(spec.get("bonus_weight", 0.5))
         min_score = float(spec.get("min_score", 1.0))
 
-        any_terms: Iterable[str] = spec.get("any_terms") or []
+        any_terms: Iterable[str] = spec.get("any") or []
         rx_terms: Iterable[re.Pattern] = spec.get("rx") or []
         bonus_terms: Iterable[str] = spec.get("bonus_if") or []
 
