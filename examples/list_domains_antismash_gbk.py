@@ -4,6 +4,7 @@
 
 import argparse
 import logging
+import os
 
 from biocracker.antismash import parse_region_gbk_file
 from biocracker.config import LOGGER_LEVEL, LOGGER_NAME
@@ -30,6 +31,7 @@ def cli() -> argparse.Namespace:
         help="Top level feature to parse (default: cand_cluster)",
     )
     parser.add_argument("--thresh", type=float, default=0.1, help="Threshold for substrate prediction (default: 0.1)")
+    parser.add_argument("--outfile", type=str, default=None, help="Path to log output file (default: None)")
     return parser.parse_args()
 
 
@@ -38,6 +40,16 @@ def main() -> None:
     Main function to parse the antiSMASH GenBank file.
     """
     args = cli()
+
+    if args.outfile is not None:
+        # Delete if file exists and create new log file
+        if os.path.exists(args.outfile):
+            os.remove(args.outfile)
+
+        file_handler = logging.FileHandler(args.outfile)
+        file_handler.setLevel(LOGGER_LEVEL)
+        logger.addHandler(file_handler)
+
     gbk_path = args.gbk
     target_name = args.toplevel
     targets = parse_region_gbk_file(gbk_path, top_level=target_name)
@@ -58,6 +70,7 @@ def main() -> None:
                 f"> (gene at {gene.start:>{len_start}} - {gene.end:>{len_end}} on strand {gene.strand:>2}) "
                 f"{gene.name} : {gene.product}"
             )
+
             for domain in gene.domains:
                 domain_len_start = max([len(str(d.start)) for d in gene.domains])
                 domain_len_end = max([len(str(d.end)) for d in gene.domains])
@@ -72,8 +85,11 @@ def main() -> None:
                 )
                 if domain_preds is not None:
                     if domain_preds:
-                        for name, smiles, score in domain_preds:
-                            logger.info(f"       > Predicted substrate: {name} (SMILES: {smiles}) with score {score}")
+                        for domain_pred in domain_preds:
+                            name = domain_pred.get("substrate_name", "Unknown")
+                            smiles = domain_pred.get("substrate_smiles", "N/A")
+                            score = domain_pred.get("score", 0.0)
+                            logger.info(f"       > Predicted substrate: {name} (SMILES: '{smiles}') with score {score}")
 
 
 if __name__ == "__main__":

@@ -40,7 +40,7 @@ def predict_amp_domain_substrate(
     *,
     model: object | None = None,
     pred_threshold: float = 0.5,
-) -> list[tuple[str, str, float]] | None:
+) -> list[dict] | None:
     """
     Predict substrate specificity for a given AMP-binding domain using paras.
 
@@ -48,7 +48,10 @@ def predict_amp_domain_substrate(
     :param cache_dir_override: Optional path to override the default cache directory
     :param model: Optional already loaded paras model, skip download and loading if provided
     :param pred_threshold: prediction threshold for substrate specificity (default: 0.5)
-    :return: list of tuples with all predicted substrates as (name, smiles, score) above threshold
+    :return: list of dictionaries with all predicted substrates above the threshold, each with keys:
+        'substrate_name' (str): substrate name,
+        'substrate_smiles' (str): substrate SMILES,
+        'score' (float): prediction score
     :raises TypeError: if domain is not an instance of DomainRec
     .. note:: returns None if the domain is not of type "AMP-binding"
     .. note:: returns empty list if no predictions are above the threshold, or an error occurs
@@ -103,5 +106,8 @@ def predict_amp_domain_substrate(
     except Exception as e:
         logger.error(f"{e}\nError during paras prediction for domain {domain.name}, returning no predictions")
         preds = []
+
+    # Format predictions
+    preds = [{"substrate_name": name, "substrate_smiles": smiles, "score": score} for name, smiles, score in preds]
 
     return preds
