@@ -7,8 +7,8 @@
       <img alt="PyPI" src="https://img.shields.io/pypi/v/biocracker" /></a>
     <a href="https://pypi.org/project/biocracker">
       <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/biocracker" /></a>
-    <!-- <a href="https://doi.org/10.5281/zenodo.17410570">
-      <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.17410570.svg" alt="DOI" /></a> -->
+    <a href="https://doi.org/10.5281/zenodo.17524264">
+      <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.17524264.svg" alt="DOI" /></a>
 </p>
 
 Parser for antiSMASH output GenBank files.
