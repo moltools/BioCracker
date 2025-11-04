@@ -1,6 +1,19 @@
 # BioCracker
 
+<p align="center">
+    <a href="https://github.com/moltools/biocracker/actions/workflows/tests.yml">
+      <img alt="testing & quality" src="https://github.com/moltools/biocracker/actions/workflows/tests.yml/badge.svg" /></a>
+    <a href="https://pypi.org/project/biocracker">
+      <img alt="PyPI" src="https://img.shields.io/pypi/v/biocracker" /></a>
+    <a href="https://pypi.org/project/biocracker">
+      <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/biocracker" /></a>
+    <!-- <a href="https://doi.org/10.5281/zenodo.17410570">
+      <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.17410570.svg" alt="DOI" /></a> -->
+</p>
+
 Parser for antiSMASH output GenBank files.
+
+See the [examples folder](https://github.com/moltools/biocracker/tree/main/examples) for usage examples.
 
 ## Installation
 
