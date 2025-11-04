@@ -21,7 +21,7 @@ from biocracker.helpers import download_and_prepare, get_biocracker_cache_dir
 _PARAS_MODEL_CACHE: dict[str, object] = {}
 
 
-def has_parasect() -> bool:
+def has_paras() -> bool:
     """
     Check if parasect is installed.
 
@@ -37,7 +37,7 @@ def _load_paras_model(cache_dir: Path) -> object:
     :param cache_dir: Path to the cache directory
     :return: loaded paras model
     """
-    if not _HAS_PARAS:
+    if not has_paras():
         raise ImportError("paras is not installed, cannot load paras model")
 
     global _PARAS_MODEL_CACHE
@@ -84,7 +84,7 @@ def predict_amp_domain_substrate(
         return None
 
     # If parasect is missing, log and return None
-    if not has_parasect():
+    if not has_paras():
         logger.warning("parasect not installed — skipping substrate prediction.")
         return None
 
