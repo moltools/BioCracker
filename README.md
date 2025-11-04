@@ -25,6 +25,16 @@ We recommend installing BioCracker in a virtual conda environment, based on the 
 conda env create -f environment.yml
 ```
 
+### Installing PARAS
+
+PARAS is used by BioCracker to predict substrate specificities of NRPS adenylation domains.
+
+PARAS has no PyPI package ans must be installed from source manually:
+
+```bash
+pip install "paras @ git+https://github.com/bthedragonmaster/parasect.git@v2.0.0"
+```
+
 ### Installing HMMER2 on macOS Arm64
 
 Use Rosetta to install the x86_64 version of HMMER2:

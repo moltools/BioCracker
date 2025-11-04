@@ -15,4 +15,5 @@ dependencies:
   - pip
   - pip:
       - -e .
+      - "paras @ git+https://github.com/bthedragonmaster/parasect.git@v2.0.0"
       - hatch

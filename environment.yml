@@ -14,4 +14,5 @@ dependencies:
   # Extra PyPI deps
   - pip
   - pip:
-      - "biocracker @ git+https://github.com/moltools/biocracker.git"
+      - biocracker
+      - "paras @ git+https://github.com/bthedragonmaster/parasect.git@v2.0.0"

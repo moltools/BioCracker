@@ -5,13 +5,29 @@ import os
 from pathlib import Path
 
 import joblib
-from parasect.api import run_paras  # module is called parasect, but we are using the paras model
+
+try:
+    from parasect.api import run_paras  # module is called parasect, but we are using the paras model
+
+    _HAS_PARAS = True
+except ImportError:
+    run_paras = None
+    _HAS_PARAS = False
 
 from biocracker.antismash import DomainRec
 from biocracker.config import LOGGER_NAME, PARAS_CACHE_DIR_NAME, PARAS_MODEL_DOWNLOAD_URL
 from biocracker.helpers import download_and_prepare, get_biocracker_cache_dir
 
 _PARAS_MODEL_CACHE: dict[str, object] = {}
+
+
+def has_parasect() -> bool:
+    """
+    Check if parasect is installed.
+
+    :return: True if parasect is installed, False otherwise
+    """
+    return _HAS_PARAS
 
 
 def _load_paras_model(cache_dir: Path) -> object:
@@ -21,6 +37,9 @@ def _load_paras_model(cache_dir: Path) -> object:
     :param cache_dir: Path to the cache directory
     :return: loaded paras model
     """
+    if not _HAS_PARAS:
+        raise ImportError("paras is not installed, cannot load paras model")
+
     global _PARAS_MODEL_CACHE
 
     # If model already loaded, return it immediately
@@ -62,6 +81,11 @@ def predict_amp_domain_substrate(
         raise TypeError("Domain must be an instance of DomainRec")
 
     if domain.kind != "AMP-binding":
+        return None
+
+    # If parasect is missing, log and return None
+    if not has_parasect():
+        logger.warning("parasect not installed — skipping substrate prediction.")
         return None
 
     # Define cache directory

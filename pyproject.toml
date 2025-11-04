@@ -1,6 +1,6 @@
 [project]
 name = "biocracker"
-version = "1.0.0"
+version = "1.0.1"
 description = "BioCracker is a parser for antiSMASH output GenBank files"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,8 +15,7 @@ keywords = ["parser", "antismash"]
 
 dependencies = [
     "biopython",
-    "tqdm",
-    "paras @ git+https://github.com/bthedragonmaster/parasect.git@v2.0.0"
+    "tqdm"
 ]
 
 classifiers = [
