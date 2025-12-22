@@ -53,6 +53,9 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["src/biocracker"]
 sources = ["src"]
+include = [
+    "src/retromol/data/AMP-binding_converted.hmm"
+]
 
 # -------------------------
 # Hatch env + scripts
