@@ -5,7 +5,7 @@ import joblib
 from tqdm import tqdm
 
 from biocracker.antismash import parse_region_gbk_file
-from biocracker.paras_fast import find_a_domains, featurize_signature
+from biocracker.paras import find_a_domains, featurize_signature
 
 
 def cli():
