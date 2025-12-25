@@ -1,4 +1,4 @@
-"""Module contains helper functions for various tasks."""
+"""Utility functions for downloading and preparing files."""
 
 import os
 import platform
@@ -12,7 +12,8 @@ from urllib.request import Request, urlopen
 
 from tqdm import tqdm
 
-from biocracker.config import NAME_CACHE_DIR
+
+NAME_CACHE_DIR = os.getenv("NAME_CACHE_DIR", "biocracker_cache")
 
 
 def get_biocracker_cache_dir(path: str | Path | None = None) -> Path:

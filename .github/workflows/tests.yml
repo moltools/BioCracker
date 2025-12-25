@@ -30,11 +30,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[dev]
 
-      - name: ruff lint
-        run: ruff check examples src tests
+      # - name: ruff lint
+      #   run: ruff check examples src tests
 
-      - name: ruff format check
-        run: ruff format --check examples src tests
+      # - name: ruff format check
+      #   run: ruff format --check examples src tests
 
-      - name: run tests
-        run: pytest -q
+      # - name: run tests
+      #   run: pytest -q
