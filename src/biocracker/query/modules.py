@@ -1,12 +1,17 @@
-"""Module for constructing linear readouts from genomic regions."""
+"""
+Module for constructing linear readouts from genomic regions.
 
-from enum import Enum
+Note: upstream/downstream scans are genomic (coordinate-based), not biosynthetic!
+"""
+
 from abc import ABC, abstractmethod
+from collections import Counter
 from dataclasses import dataclass, field
-from typing import Any, TypeAlias, Literal
+from enum import Enum
+from typing import Any
 
 from biocracker.model.region import Region
-from biocracker.model.gene import Gene
+from biocracker.model.gene import Gene, Strand
 from biocracker.model.domain import Domain
 
 
@@ -43,6 +48,7 @@ class ModuleType(Enum):
     PKS = "PKS"
 
 
+
 class ModuleRole(Enum):
     """
     Enumeration of module roles.
@@ -70,6 +76,7 @@ class Module(ABC):
     :param start: starting position of the module
     :param end: ending position of the module
     :param gene_id: ID of the gene containing the module
+    :param gene_strand: strand of the gene containing the module
     :param present_domains: list of domain types present in the module
     :param role: functional role of the module
     """
@@ -77,6 +84,7 @@ class Module(ABC):
     start: int
     end: int
     gene_id: str
+    gene_strand: Strand
     present_domains: list[str]
     role: ModuleRole
 
@@ -93,6 +101,24 @@ class Module(ABC):
     def substrate(self) -> Any:
         """
         Abstract property to get the substrate information for the module.
+        """
+        raise NotImplementedError
+    
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert the Module object to a dictionary representation.
+
+        :return: Dictionary representation of the Module
+        """
+        raise NotImplementedError
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Module":
+        """
+        Create a Module object from a dictionary representation.
+
+        :param data: Dictionary representation of the Module
+        :return: Module object
         """
         raise NotImplementedError
     
@@ -119,20 +145,80 @@ class NRPSAnatomy:
     has_R: bool
     has_TE: bool
 
+    def to_dict(self) -> dict[str, bool]:
+        """
+        Convert the NRPSAnatomy object to a dictionary representation.
+
+        :return: Dictionary representation of the NRPSAnatomy
+        """
+        return {
+            "has_C": self.has_C,
+            "has_T": self.has_T,
+            "has_E": self.has_E,
+            "has_MT": self.has_MT,
+            "has_Ox": self.has_Ox,
+            "has_R": self.has_R,
+            "has_TE": self.has_TE,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, bool]) -> "NRPSAnatomy":
+        """
+        Create a NRPSAnatomy object from a dictionary representation.
+
+        :param data: Dictionary representation of the NRPSAnatomy
+        :return: NRPSAnatomy object
+        """
+        return cls(
+            has_C=data.get("has_C", False),
+            has_T=data.get("has_T", False),
+            has_E=data.get("has_E", False),
+            has_MT=data.get("has_MT", False),
+            has_Ox=data.get("has_Ox", False),
+            has_R=data.get("has_R", False),
+            has_TE=data.get("has_TE", False),
+        )
+
 
 @dataclass
 class NRPSSubstrate:
     """
     Substrate information for a Nonribosomal Peptide Synthetase (NRPS) module.
 
-    :param substrate_name: name of the predicted substrate
-    :param substrate_smiles: SMILES representation of the substrate
+    :param name: name of the predicted substrate
+    :param smiles: SMILES representation of the substrate
     :param score: confidence score of the substrate prediction
     """
 
-    substrate_name: str | None
-    substrate_smiles: str | None
+    name: str | None
+    smiles: str | None
     score: float | None
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert the NRPSSubstrate object to a dictionary representation.
+
+        :return: Dictionary representation of the NRPSSubstrate
+        """
+        return {
+            "name": self.name,
+            "smiles": self.smiles,
+            "score": self.score,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "NRPSSubstrate":
+        """
+        Create a NRPSSubstrate object from a dictionary representation.
+
+        :param data: Dictionary representation of the NRPSSubstrate
+        :return: NRPSSubstrate object
+        """
+        return cls(
+            name=data.get("name", None),
+            smiles=data.get("smiles", None),
+            score=data.get("score", None),
+        )
 
 
 class ATLoadingMode(Enum):
@@ -165,6 +251,37 @@ class PKSAnatomy:
     has_active_DH: bool
     has_active_ER: bool
 
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert the PKSAnatomy object to a dictionary representation.
+
+        :return: Dictionary representation of the PKSAnatomy
+        """
+        return {
+            "AT_loading_mode": self.AT_loading_mode.value,
+            "has_active_KR": self.has_active_KR,
+            "has_active_DH": self.has_active_DH,
+            "has_active_ER": self.has_active_ER,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "PKSAnatomy":
+        """
+        Create a PKSAnatomy object from a dictionary representation.
+
+        :param data: Dictionary representation of the PKSAnatomy
+        :return: PKSAnatomy object
+        """
+        raw = (data.get("AT_loading_mode") or "unknown").lower()
+        AT_loading_mode = ATLoadingMode(raw) if raw in {"cis","trans","unknown"} else ATLoadingMode.UNKNOWN
+
+        return cls(
+            AT_loading_mode=AT_loading_mode,
+            has_active_KR=data.get("has_active_KR", False),
+            has_active_DH=data.get("has_active_DH", False),
+            has_active_ER=data.get("has_active_ER", False),
+        )
+
 
 class PKSExtenderUnit(Enum):
     """
@@ -193,6 +310,28 @@ class PKSSubstrate:
     """
 
     extender_unit: PKSExtenderUnit
+
+    def to_dict(self) -> dict[str, str]:
+        """
+        Convert the PKSSubstrate object to a dictionary representation.
+
+        :return: Dictionary representation of the PKSSubstrate
+        """
+        return {
+            "extender_unit": self.extender_unit.value,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, str]) -> "PKSSubstrate":
+        """
+        Create a PKSSubstrate object from a dictionary representation.
+
+        :param data: Dictionary representation of the PKSSubstrate
+        :return: PKSSubstrate object
+        """
+        return cls(
+            extender_unit=PKSExtenderUnit(data.get("extender_unit", "UNCLASSIFIED")),
+        )
 
 
 @dataclass
@@ -225,7 +364,49 @@ class NRPSModule(Module):
 
         :return: NRPSSubstrate object containing substrate information, or None if not available
         """
-        return self._substrate
+        return self.predicted_substrate
+    
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert the NRPSModule object to a dictionary representation.
+
+        :return: Dictionary representation of the NRPSModule
+        """
+        return {
+            "type": self.type.value,
+            "module_index_in_gene": self.module_index_in_gene,
+            "start": self.start,
+            "end": self.end,
+            "gene_id": self.gene_id,
+            "gene_strand": self.gene_strand.value,
+            "present_domains": self.present_domains,
+            "role": self.role.value,
+            "anatomy": self.anatomy.to_dict(),
+            "predicted_substrate": self.predicted_substrate.to_dict() if self.predicted_substrate else None,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "NRPSModule":
+        """
+        Create a NRPSModule object from a dictionary representation.
+
+        :param data: Dictionary representation of the NRPSModule
+        :return: NRPSModule object
+        """
+        anatomy_data = data.get("anatomy", {})
+        substrate_data = data.get("predicted_substrate", None)
+
+        return cls(
+            module_index_in_gene=data["module_index_in_gene"],
+            start=data["start"],
+            end=data["end"],
+            gene_id=data["gene_id"],
+            gene_strand=Strand(data["gene_strand"]),
+            present_domains=data["present_domains"],
+            role=ModuleRole(data["role"]),
+            anatomy=NRPSAnatomy.from_dict(anatomy_data),
+            predicted_substrate=NRPSSubstrate.from_dict(substrate_data) if substrate_data else None,
+        )
 
 
 @dataclass
@@ -267,11 +448,50 @@ class PKSModule(Module):
             self.anatomy.has_active_DH,
             self.anatomy.has_active_ER,
         ):
-            case (True,  True,  True ): return PKSExtenderUnit.PKS_A
-            case (True,  True,  False): return PKSExtenderUnit.PKS_B
-            case (True,  False, False): return PKSExtenderUnit.PKS_C
-            case (False, False, False): return PKSExtenderUnit.PKS_D
-            case _:                     return PKSExtenderUnit.UNCLASSIFIED
+            case (False, False, False ): return PKSExtenderUnit.PKS_A
+            case (True,  False, False ): return PKSExtenderUnit.PKS_B
+            case (True,  True,  False ): return PKSExtenderUnit.PKS_C
+            case (True,  True,  True  ): return PKSExtenderUnit.PKS_D
+            case _:                      return PKSExtenderUnit.UNCLASSIFIED
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert the PKSModule object to a dictionary representation.
+
+        :return: Dictionary representation of the PKSModule
+        """
+        return {
+            "type": self.type.value,
+            "module_index_in_gene": self.module_index_in_gene,
+            "start": self.start,
+            "end": self.end,
+            "gene_id": self.gene_id,
+            "gene_strand": self.gene_strand.value,
+            "present_domains": self.present_domains,
+            "role": self.role.value,
+            "anatomy": self.anatomy.to_dict(),
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "PKSModule":
+        """
+        Create a PKSModule object from a dictionary representation.
+
+        :param data: Dictionary representation of the PKSModule
+        :return: PKSModule object
+        """
+        anatomy_data = data.get("anatomy", {})
+
+        return cls(
+            module_index_in_gene=data["module_index_in_gene"],
+            start=data["start"],
+            end=data["end"],
+            gene_id=data["gene_id"],
+            gene_strand=Strand(data["gene_strand"]),
+            present_domains=data["present_domains"],
+            role=ModuleRole(data["role"]),
+            anatomy=PKSAnatomy.from_dict(anatomy_data),
+        )
 
 
 @dataclass
@@ -300,6 +520,103 @@ class LinearReadout:
         :return: string representation of the LinearReadout
         """
         return f"LinearReadout(id={self.id}, start={self.start}, end={self.end}, modules={len(self.modules)})"
+    
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert the LinearReadout object to a dictionary representation.
+
+        :return: Dictionary representation of the LinearReadout
+        """
+        return {
+            "id": self.id,
+            "start": self.start,
+            "end": self.end,
+            "qualifiers": self.qualifiers,
+            "modules": [module.to_dict() for module in self.modules],
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "LinearReadout":
+        """
+        Create a LinearReadout object from a dictionary representation.
+
+        :param data: Dictionary representation of the LinearReadout
+        :return: LinearReadout object
+        """
+        modules_data = data.get("modules", [])
+        modules: list[Module] = []
+
+        for mod_data in modules_data:
+            mod_type = mod_data.get("type", None)
+            if mod_type == ModuleType.NRPS.value:
+                modules.append(NRPSModule.from_dict(mod_data))
+            elif mod_type == ModuleType.PKS.value:
+                modules.append(PKSModule.from_dict(mod_data))
+            else:
+                raise ValueError(f"Unknown module type: {mod_type}")
+
+        return cls(
+            id=data["id"],
+            start=data["start"],
+            end=data["end"],
+            qualifiers=data.get("qualifiers", {}),
+            modules=modules,
+        )
+    
+    def biosynthetic_order(self) -> list[Module]:
+        """
+        Return modules in biosynthetic order.
+
+        :param orientation: 'forward' for 5' to 3', 'reverse' for 3' to 5'
+        :return: list of Module objects in the specified order
+        """
+        if not self.modules:
+            return []
+        
+        # Group modules by gene
+        by_gene: dict[str, list[Module]] = {}
+        for m in self.modules:
+            by_gene.setdefault(m.gene_id, []).append(m)
+
+        # Infer strand per gene (sanity check)
+        gene_strand: dict[str, Strand] = {}
+        for gid, mods in by_gene.items():
+            s = mods[0].gene_strand
+            if any(m.gene_strand is not s for m in mods):
+                raise ValueError(f"mixed gene_strand in gene_id={gid}")
+            gene_strand[gid] = s
+
+        # Infer global biosyntehtic direction
+        strand_counts = Counter(gene_strand.values())
+        global_reverse = strand_counts[Strand.REVERSE] > strand_counts[Strand.FORWARD]
+
+        # Order genes along biosynthetic direction using genomic position
+        gene_ids = sorted(
+            by_gene.keys(),
+            key=lambda gid: min(m.start for m in by_gene[gid]),
+            reverse=global_reverse,
+        )
+
+        out: list[Module] = []
+        for gid in gene_ids:
+            mods = by_gene[gid]
+            if gene_strand[gid] is Strand.FORWARD:
+                mods_sorted = sorted(mods, key=lambda m: m.start)
+            else:
+                mods_sorted = sorted(mods, key=lambda m: m.start, reverse=True)
+            out.extend(mods_sorted)
+
+        return out
+    
+
+def _domain_index_by_obj(doms: list[Domain]) -> dict[int, int]:
+    """
+    Helper function to create a mapping from Domain object IDs to their indices in a list.
+
+    :param doms: list of Domain objects
+    :return: dictionary mapping Domain object IDs to their indices
+    """
+    return {id(d): i for i, d in enumerate(doms)}
 
 
 def _domain_types(domains: list[Domain]) -> set[str]:
@@ -355,20 +672,20 @@ def _is_Cstarter(domain: Domain) -> bool:
     return ("starter" in blob) or ("cstarter" in blob) or ("condensation_starter" in blob)
 
 
-def _upstream_loading_cassette(all_genes: list[Gene], gene_idx: int, max_bp: int = 20_000) -> bool:
+def _upstream_loading_cassette(all_genes: list[Gene], gene_idx_in_genomic_order: int, max_bp: int = 20_000) -> bool:
     """
     Check for upstream loading cassette (CAL + ACP) in upstream genes within max_bp distance.
 
     :param all_genes: list of all Gene objects in the region/cluster
-    :param gene_idx: index of the gene gene in all_genes
+    :param gene_idx_in_genomic_order: index of the gene gene in all_genes
     :param max_bp: maximum base pair distance to search upstream
     :return: True if a loading cassette is found upstream within max_bp, False otherwise
     """
-    cur_start = all_genes[gene_idx].start
+    cur_start = all_genes[gene_idx_in_genomic_order].start
 
     seen_cal = False
     seen_acp = False
-    for j in range(gene_idx - 1, -1, -1):
+    for j in range(gene_idx_in_genomic_order - 1, -1, -1):
         g = all_genes[j]
         if cur_start - g.end > max_bp:
             break  # exceeded max distance
@@ -384,123 +701,19 @@ def _upstream_loading_cassette(all_genes: list[Gene], gene_idx: int, max_bp: int
     return False
 
 
-def _upstream_has_nrps_A(all_genes: list[Gene], gene_idx: int) -> bool:
+def _upstream_has_nrps_A(all_genes: list[Gene], gene_idx_in_genomic_order: int) -> bool:
     """
     Check if there is an upstream gene with an NRPS A-domain.
 
     :param all_genes: list of all Gene objects in the region/cluster
-    :param gene_idx: index of the gene gene in all_genes
+    :param gene_idx_in_genomic_order: index of the gene gene in all_genes
     :return: True if there is an upstream NRPS A-domain, False otherwise
     """
-    for j in range(gene_idx - 1, -1, -1):
+    for j in range(gene_idx_in_genomic_order - 1, -1, -1):
         if any(_is_domain_type(d, NRPS_A) for d in all_genes[j].domains):
             return True
         
     return False
-
-
-def collect_nrps_modules(gene: Gene, gene_idx: int, all_genes: list[Gene]) -> list[NRPSModule]:
-    """
-    Collect NRPS modules from a given gene.
-    
-    :param gene: Gene object to analyze
-    :param gene_idx: index of the gene in the region's gene list
-    :param all_genes: List of all genes in the region
-    :return: List of NRPSModule objects"""
-    doms: list[Domain] = list(gene.domains)
-    out: list[NRPSModule] = []
-
-    # Indices of A domains in left-to-right order
-    a_idx = [i for i, d in enumerate(doms) if _is_domain_type(d, NRPS_A)]
-    if not a_idx:
-        return out  # no A domains, no modules
-    
-    for mi, ai in enumerate(a_idx):
-        # Extend window backward by one if there is an immediately previous C (same gene)
-        start_i = ai
-        if ai - 1 >= 0 and _is_domain_type(doms[ai - 1], NRPS_C):
-            start_i = ai - 1
-        
-        # Extend forward until (but not including) the next A-domain
-        end_i = a_idx[mi + 1] if mi + 1 < len(a_idx) else len(doms)
-
-        window = doms[start_i:end_i]
-        present = _domain_types(window)
-
-        has_C = any(_is_domain_type(d, NRPS_C) for d in window)
-        has_Cstarter = any(_is_Cstarter(d) for d in window)
-        has_T = any(_is_domain_type(d, NRPS_T_ALIASES) for d in window)
-        has_E = any(_is_domain_type(d, NRPS_E) for d in window)
-        has_MT = any(_is_domain_type(d, NRPS_MT_ALIASES) for d in window)
-        has_Ox = any(_is_domain_type(d, NRPS_OX_ALIASES) for d in window)
-        has_R = any(_is_domain_type(d, NRPS_R_ALIASES) for d in window)
-        has_TE = any(_is_domain_type(d, NRPS_TE) for d in window)
-
-        # Fallback evidence of a separate loading cassette upstream
-        loading_upstream = _upstream_loading_cassette(all_genes, gene_idx)
-        upstream_has_A = _upstream_has_nrps_A(all_genes, gene_idx)
-
-        # Role heuristic
-        is_first_module_in_gene = mi == 0
-
-        starter = (
-            has_Cstarter
-            or (is_first_module_in_gene and loading_upstream and not upstream_has_A)
-            or ((not has_C) and not upstream_has_A)
-        )
-        terminal = has_TE or has_R
-
-        def _get_module_role(starter: bool, terminal: bool) -> ModuleRole:
-            match (starter, terminal):
-                case (True,  True ): return ModuleRole.STARTER_TERMINAL
-                case (True,  False): return ModuleRole.STARTER
-                case (False, True ): return ModuleRole.TERMINAL
-                case (False, False): return ModuleRole.ELONGATION
-        role: ModuleRole = _get_module_role(starter, terminal)
-
-        s = min(d.start for d in window)
-        e = max(d.end for d in window)
-
-        # Retrieve A domain substrate specificity prediction
-        A = doms[ai]
-        anns = A.annotations
-        substrate_pred: NRPSSubstrate | None = None
-        if anns:
-            preds = anns.results
-
-            # Highest confidence first
-            preds_sorted = sorted(preds, key=lambda r: r.score or 0.0, reverse=True)
-    
-            # Get highest confidence prediction, if any
-            top_pred = preds_sorted[0] if preds_sorted else None
-
-            if top_pred:
-                substrate_pred = NRPSSubstrate(
-                    substrate_name=top_pred.label,
-                    substrate_smiles=top_pred.metadata.get("smiles", None),
-                    score=top_pred.score,
-                )
-
-        out.append(NRPSModule(
-            module_index_in_gene=mi,
-            start=s,
-            end=e,
-            gene_id=gene.id,
-            present_domains=list(present),
-            role=role,
-            anatomy=NRPSAnatomy(
-                has_C=has_C,
-                has_T=has_T,
-                has_E=has_E,
-                has_MT=has_MT,
-                has_Ox=has_Ox,
-                has_R=has_R,
-                has_TE=has_TE,
-            ),
-            predicted_substrate=substrate_pred,
-        ))
-
-    return out
 
 
 def _split_module_on_KS(domains: list[Domain]) -> list[list[Domain]]:
@@ -537,7 +750,7 @@ def _is_active_accessory_domain(domain: Domain) -> bool:
     :return: True if the domain is active, False if inactive
     """
     if not domain.type:
-        return True
+        return True  # can't tell, assume active
     
     if domain.type not in {"PKS_KR", "PKS_DH", "PKS_ER"}:
         return True  # not a reducible domain, consider active by default
@@ -546,7 +759,7 @@ def _is_active_accessory_domain(domain: Domain) -> bool:
     if domain.id:
         texts.append(domain.id)
     for _, vals in domain.raw_qualifiers.items():
-        if isinstance(vals, list):
+        if isinstance(vals, (list, tuple)):
             texts.extend(map(str, vals))
         else:
             texts.append(str(vals))
@@ -562,7 +775,9 @@ def _is_active_accessory_domain(domain: Domain) -> bool:
         "broken",
         "truncated",
     ]
-    return not any(flag in blob for flag in inactive_flags)
+    is_active = not any(flag in blob for flag in inactive_flags)
+
+    return is_active
 
 
 def _classify_pks_window(window: list[Domain]) -> tuple[set[str], bool, bool, bool, bool]:
@@ -610,122 +825,140 @@ def _is_AT_only_gene(gene: Gene) -> bool:
     return ("PKS_AT" in types) and all(t in {"PKS_AT"} for t in types)
 
 
-def _find_upstream_AT_only_gene(all_genes: list[Gene], gene_idx: int) -> Gene | None:
+def _find_genomic_upstream_AT_only_gene(all_genes: list[Gene], gene_idx_in_genomic_order: int) -> Gene | None:
     """
     Return the nearest upstream gene that is AT-only (relative to all_genes order).
 
     :param all_genes: list of Gene objects
-    :param gene_idx: index of the current gene in all_genes
+    :param gene_idx_in_genomic_order: index of the current gene in all_genes
     :return: Gene object of the nearest upstream AT-only gene, or None if not found
     """
-    for j in range(gene_idx - 1, -1, -1):
+    for j in range(gene_idx_in_genomic_order - 1, -1, -1):
         if _is_AT_only_gene(all_genes[j]):
             return all_genes[j]
         
     return None
 
 
-def _upstream_has_pks_KS(all_genes: list[Gene], gene_idx: int, ks_start: int) -> bool:
+def _upstream_has_pks_KS(
+    all_genes: list[Gene],
+    gene_idx_in_genomic_order: int,
+    doms: list[Domain],
+    ks_domain: Domain,
+) -> bool:
     """
     Check if there is an upstream gene with a PKS KS-domain.
     
     :param all_genes: list of all Gene objects in the region/cluster
-    :param gene_idx: index of the gene gene in all_genes
-    :param ks_start: start position of the KS domain in gene
+    :param gene_idx_in_genomic_order: index of the gene gene in all_genes
+    :param doms: list of Domain objects in the current gene, sorted for biosynthetic order
+    :param ks_domain: the KS Domain object to check upstream of
     :return: True if there is an upstream KS-domain, False otherwise
     """
     # Genes upstream
-    for j in range(gene_idx -1, -1, -1):
+    for j in range(gene_idx_in_genomic_order -1, -1, -1):
         if any(d.type == "PKS_KS" for d in all_genes[j].domains):
             return True
         
-    # Same gene, KS before this window's KS
-    for d in all_genes[gene_idx].domains:
-        if d.type == "PKS_KS" and d.start < ks_start:
-            return True
-    
-    return False
+    # Same gene: any KS earlier in biosynthetic order than this KS?
+    idx = _domain_index_by_obj(doms)
+    ks_i = idx[id(ks_domain)]
+    return any(d.type == "PKS_KS" and idx[id(d)] < ks_i for d in doms)
 
 
 def _standalone_pks_AT_upstream(
     all_genes: list[Gene],
-    gene_idx: int,
-    ks_start: int,
+    gene_idx_in_genomic_order: int,
+    doms: list[Domain],
+    ks_domain: Domain,
     max_bp: int = 20_000
 ) -> bool:
     """
     Check for standalone PKS AT domain in upstream genes within max_bp distance.
 
     :param all_genes: list of all Gene objects in the region/cluster
-    :param gene_idx: index of the gene gene in all_genes
-    :param ks_start: start position of the KS domain in gene
+    :param gene_idx_in_genomic_order: index of the gene gene in all_genes
+    :param doms: list of Domain objects in the current gene, sorted for biosynthetic order
+    :param ks_domain: the KS Domain object to check upstream of
     :param max_bp: maximum base pair distance to search upstream
     :return: True if a standalone PKS AT domain is found upstream within max_bp, False otherwise
     """
+    # Same gene: any AT earlier than this KS in biosynthetic order?
+    idx = _domain_index_by_obj(doms)
+    ks_i = idx[id(ks_domain)]
+    if any(d.type == "PKS_AT" and idx[id(d)] < ks_i for d in doms):
+        return True
+
+    # Other genes upstream, within distance (still genomic)
+    ks_start = ks_domain.start
     cur_start = ks_start
-
-    # Same gene, before ks_start
-    for d in all_genes[gene_idx].domains:
-        if d.type == "PKS_AT" and d.end < ks_start:
-            return True
-    
-    # Upstream genes, within distance
-    for j in range(gene_idx - 1, -1, -1):
-        gene = all_genes[j]
-        if cur_start - gene.end > max_bp:
-            break  # exceeded max distance
-
-        if any(d.type == "PKS_AT" for d in gene.domains):
+    for j in range(gene_idx_in_genomic_order - 1, -1, -1):
+        g = all_genes[j]
+        if cur_start - g.end > max_bp:
+            break
+        if any(d.type == "PKS_AT" for d in g.domains):
             return True
         
     return False
 
 
-def _is_last_global_KS(all_genes: list[Gene], gene_idx: int, ks_start: int) -> bool:
+def _is_last_global_KS(
+    all_genes: list[Gene],
+    gene_idx_in_genomic_order: int,
+    doms: list[Domain],
+    ks_domain: Domain,
+) -> bool:
     """
     Check if the given KS domain is the last KS domain in the entire gene cluster/region.
     
     :param all_genes: list of all Gene objects in the region/cluster
-    :param gene_idx: index of the gene gene in all_genes
-    :param ks_start: start position of the KS domain in gene
+    :param gene_idx_in_genomic_order: index of the gene gene in all_genes
+    :param doms: list of Domain objects in the current gene, sorted for biosynthetic order
+    :param ks_domain: the KS Domain object to check
     :return: True if this is the last KS domain, False otherwise
     """
-    # Same gene, any KS after this ks_start?
-    for d in all_genes[gene_idx].domains:
-        if d.type == "PKS_KS" and d.start > ks_start:
-            return False
+    # Same gene: any KS later in biosynthetic order?
+    idx = _domain_index_by_obj(doms)
+    ks_i = idx[id(ks_domain)]
+    if any(d.type == "PKS_KS" and idx[id(d)] > ks_i for d in doms):
+        return False
         
-    # Downstream genes
-    for j in range(gene_idx + 1, len(all_genes)):
+    # Downstream genes (genomic list order)
+    for j in range(gene_idx_in_genomic_order + 1, len(all_genes)):
         if any(d.type == "PKS_KS" for d in all_genes[j].domains):
             return False 
     
     return True
 
 
-def _downstream_has_TE(
+def _genomic_downstream_has_TE(
     all_genes: list[Gene],
-    gene_idx: int,
-    from_bp: int,
+    gene_idx_in_genomic_order: int,
+    doms: list[Domain],
+    win: list[Domain],
     max_bp: int = 20_000
 ) -> bool:
     """
     Check for downstream thioesterase (TE) domain in downstream genes within max_bp distance.
 
     :param all_genes: list of all Gene objects in the region/cluster
-    :param gene_idx: index of the gene gene in all_genes
-    :param from_bp: base pair position to start searching from
+    :param gene_idx_in_genomic_order: index of the gene gene in all_genes
+    :param doms: list of Domain objects in the current gene, sorted for biosynthetic order
+    :param win: current module window (list of Domain objects)
     :param max_bp: maximum base pair distance to search downstream
     :return: True if a thioesterase domain is found downstream within max_bp, False otherwise
     """
-    # Same gene after from_bp
-    for d in all_genes[gene_idx].domains:
-        if d.type in PKS_TE_ALIASES and d.start > from_bp:
-            return True
+    idx = _domain_index_by_obj(doms)
+    last_i = idx[id(win[-1])]
+
+    # Same gene: any TE later than the window end in biosynthetic order?
+    if any(d.type in PKS_TE_ALIASES and idx[id(d)] > last_i for d in doms):
+        return True
         
-    # Next genes within window
+    # Other genes downstream, within distance (still genomic)
+    from_bp = max(d.end for d in win)  # genomic coordinate for distance window
     cur_end = from_bp
-    for j in range(gene_idx + 1, len(all_genes)):
+    for j in range(gene_idx_in_genomic_order + 1, len(all_genes)):
         gene = all_genes[j]
         if gene.start - cur_end > max_bp:
             break  # exceeded max distance
@@ -736,12 +969,132 @@ def _downstream_has_TE(
     return False
 
 
-def collect_pks_modules(gene: Gene, gene_idx: int, all_genes: list[Gene]) -> list[PKSModule]:
+def domains_biosynthetic(gene: Gene) -> list[Domain]:
+    """
+    Return domains in biosynthetic order within a gene.
+    
+    :param gene: Gene object
+    :return: list of Domain objects in biosynthetic order
+    .. note:: we assume Domain.start/end are genomic coordinates
+    """
+    doms = sorted(gene.domains, key=lambda d: d.start)
+    if gene.strand is Strand.REVERSE:
+        doms = list(reversed(doms))
+
+    return doms
+
+
+def collect_nrps_modules(gene: Gene, gene_idx_in_genomic_order: int, all_genes: list[Gene]) -> list[NRPSModule]:
+    """
+    Collect NRPS modules from a given gene.
+    
+    :param gene: Gene object to analyze
+    :param gene_idx_in_genomic_order: index of the gene in the region's gene list
+    :param all_genes: List of all genes in the region
+    :return: List of NRPSModule objects"""
+    doms: list[Domain] = domains_biosynthetic(gene)
+    out: list[NRPSModule] = []
+
+    # Indices of A domains in left-to-right order
+    a_idx = [i for i, d in enumerate(doms) if _is_domain_type(d, NRPS_A)]
+    if not a_idx:
+        return out  # no A domains, no modules
+    
+    for mi, ai in enumerate(a_idx):
+        # Extend window backward by one if there is an immediately previous C (same gene)
+        start_i = ai
+        if ai - 1 >= 0 and _is_domain_type(doms[ai - 1], NRPS_C):
+            start_i = ai - 1
+        
+        # Extend forward until (but not including) the next A-domain
+        end_i = a_idx[mi + 1] if mi + 1 < len(a_idx) else len(doms)
+
+        window = doms[start_i:end_i]
+        present = _domain_types(window)
+
+        has_C = any(_is_domain_type(d, NRPS_C) for d in window)
+        has_Cstarter = any(_is_Cstarter(d) for d in window)
+        has_T = any(_is_domain_type(d, NRPS_T_ALIASES) for d in window)
+        has_E = any(_is_domain_type(d, NRPS_E) for d in window)
+        has_MT = any(_is_domain_type(d, NRPS_MT_ALIASES) for d in window)
+        has_Ox = any(_is_domain_type(d, NRPS_OX_ALIASES) for d in window)
+        has_R = any(_is_domain_type(d, NRPS_R_ALIASES) for d in window)
+        has_TE = any(_is_domain_type(d, NRPS_TE) for d in window)
+
+        # Fallback evidence of a separate loading cassette upstream
+        loading_upstream = _upstream_loading_cassette(all_genes, gene_idx_in_genomic_order)
+        upstream_has_A = _upstream_has_nrps_A(all_genes, gene_idx_in_genomic_order)
+
+        # Role heuristic
+        is_first_module_in_gene = mi == 0
+
+        starter = (
+            has_Cstarter
+            or (is_first_module_in_gene and loading_upstream and not upstream_has_A)
+            or ((not has_C) and not upstream_has_A)
+        )
+        terminal = has_TE or has_R
+
+        def _get_module_role(starter: bool, terminal: bool) -> ModuleRole:
+            match (starter, terminal):
+                case (True,  True ): return ModuleRole.STARTER_TERMINAL
+                case (True,  False): return ModuleRole.STARTER
+                case (False, True ): return ModuleRole.TERMINAL
+                case (False, False): return ModuleRole.ELONGATION
+        role: ModuleRole = _get_module_role(starter, terminal)
+
+        s = min(d.start for d in window)
+        e = max(d.end for d in window)
+
+        # Retrieve A domain substrate specificity prediction
+        A = doms[ai]
+        anns = A.annotations
+        substrate_pred: NRPSSubstrate | None = None
+        if anns:
+            preds = anns.results
+
+            # Highest confidence first
+            preds_sorted = sorted(preds, key=lambda r: r.score or 0.0, reverse=True)
+    
+            # Get highest confidence prediction, if any
+            top_pred = preds_sorted[0] if preds_sorted else None
+
+            if top_pred:
+                substrate_pred = NRPSSubstrate(
+                    name=top_pred.label,
+                    smiles=top_pred.metadata.get("smiles", None),
+                    score=top_pred.score,
+                )
+
+        out.append(NRPSModule(
+            module_index_in_gene=mi,
+            start=s,
+            end=e,
+            gene_id=gene.id,
+            gene_strand=gene.strand,
+            present_domains=list(present),
+            role=role,
+            anatomy=NRPSAnatomy(
+                has_C=has_C,
+                has_T=has_T,
+                has_E=has_E,
+                has_MT=has_MT,
+                has_Ox=has_Ox,
+                has_R=has_R,
+                has_TE=has_TE,
+            ),
+            predicted_substrate=substrate_pred,
+        ))
+
+    return out
+
+
+def collect_pks_modules(gene: Gene, gene_idx_in_genomic_order: int, all_genes: list[Gene]) -> list[PKSModule]:
     """
     Collect PKS modules from a given gene.
     
     :param gene: Gene object to analyze
-    :param gene_idx: index of the gene in the region's gene list
+    :param gene_idx_in_genomic_order: index of the gene in the region's gene list
     :param all_genes: list of all genes in the region
     :return: list of PKSModule objects
     """
@@ -750,7 +1103,8 @@ def collect_pks_modules(gene: Gene, gene_idx: int, all_genes: list[Gene]) -> lis
     if all(d.type != "PKS_KS" for d in gene.domains):
         return out  # no KS domains, no modules
     
-    windows = _split_module_on_KS(gene.domains)
+    doms = domains_biosynthetic(gene)
+    windows = _split_module_on_KS(doms)
     for mi, win in enumerate(windows):
         (
             present,
@@ -760,7 +1114,6 @@ def collect_pks_modules(gene: Gene, gene_idx: int, all_genes: list[Gene]) -> lis
             has_AT,
         ) = _classify_pks_window(win)
 
-        ks_start = win[0].start
         s, e = _window_bounds(win)
 
         if has_AT:
@@ -768,18 +1121,19 @@ def collect_pks_modules(gene: Gene, gene_idx: int, all_genes: list[Gene]) -> lis
         else:
             AT_src: ATLoadingMode = (
                 ATLoadingMode.TRANS 
-                if _find_upstream_AT_only_gene(all_genes, gene_idx) is not None
+                if _find_genomic_upstream_AT_only_gene(all_genes, gene_idx_in_genomic_order) is not None
                 else ATLoadingMode.UNKNOWN
             )
 
         # Assign provisional PKS role
         has_TE_in_window = any(d.type in PKS_TE_ALIASES for d in win)
-        upstream_has_KS = _upstream_has_pks_KS(all_genes, gene_idx, ks_start)
-        starter = _standalone_pks_AT_upstream(all_genes, gene_idx, ks_start) and not upstream_has_KS
+        KS_domain = win[0]  # first domain in window is KS since we split on KS
+        upstream_has_KS = _upstream_has_pks_KS(all_genes, gene_idx_in_genomic_order, doms, KS_domain)
+        starter = _standalone_pks_AT_upstream(all_genes, gene_idx_in_genomic_order, doms, KS_domain) and not upstream_has_KS
 
         terminal_by_TE = False
-        if _is_last_global_KS(all_genes, gene_idx, ks_start):
-            terminal_by_TE = has_TE_in_window or _downstream_has_TE(all_genes, gene_idx, from_bp=e)
+        if _is_last_global_KS(all_genes, gene_idx_in_genomic_order, doms, KS_domain):
+            terminal_by_TE = has_TE_in_window or _genomic_downstream_has_TE(all_genes, gene_idx_in_genomic_order, doms, win)
 
         def _get_module_role(starter: bool, terminal_by_TE: bool) -> ModuleRole:
             match (starter, terminal_by_TE):
@@ -795,6 +1149,7 @@ def collect_pks_modules(gene: Gene, gene_idx: int, all_genes: list[Gene]) -> lis
             start=s,
             end=e,
             gene_id=gene.id,
+            gene_strand=gene.strand,
             present_domains=list(present),
             role=role,
             anatomy=PKSAnatomy(

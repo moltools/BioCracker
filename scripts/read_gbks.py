@@ -1,12 +1,13 @@
 """Parse linear readouts from parsed GenBank files."""
 
 import argparse
+import json
 import os
 
 from biocracker.utils.logging import setup_logging, add_file_handler
 from biocracker.utils.json import iter_json
 from biocracker.model.region import Region
-from biocracker.query.modules import LinearReadout, linear_readout
+from biocracker.query.modules import LinearReadout, PKSModule, NRPSModule, linear_readout
 
 
 def cli() -> argparse.Namespace:
@@ -47,10 +48,18 @@ def main() -> None:
     print(f"Parsed {len(readouts)} linear readouts with >= 2 modules")
 
     # Get specific readout
-    readout_ids = ["BGC0000055", "BGC0000336"]
+    readout_ids = ["BGC0000054", "BGC0000055", "BGC0000336"]
     specific_readouts = [r for r in readouts if r.id in readout_ids]
     for specific_readout in specific_readouts:
         print(f"Specific readout {specific_readout.id}: {specific_readout}")
+        for module in specific_readout.biosynthetic_order():
+            print(f"\t{module.substrate if isinstance(module, PKSModule) else module.substrate.name}", f"{module.role}", sep="\t")
+
+    # Write all readouts to output JSONL
+    out_jsonl = os.path.join(args.out, "linear_readouts.jsonl")
+    with open(out_jsonl, "w") as out_f:
+        for readout in readouts:
+            out_f.write(json.dumps(readout.to_dict()) + "\n")
     
 
 if __name__ == "__main__":
