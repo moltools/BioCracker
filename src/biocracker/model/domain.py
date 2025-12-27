@@ -1,6 +1,7 @@
 """Domain data model."""
 
 from dataclasses import dataclass, field, asdict
+from typing import Any
 
 from biocracker.model.annotations import AnnotationSet
 
@@ -15,6 +16,7 @@ class Domain:
     :param start: the starting position of the domain within the gene
     :param end: the ending position of the domain within the gene
     :param sequence: the amino acid sequence of the domain
+    :param raw_qualifiers: raw qualifiers or metadata associated with the domain
     :param annotations: the set of annotations associated with the domain
     """
 
@@ -23,6 +25,7 @@ class Domain:
     start: int
     end: int
     sequence: str
+    raw_qualifiers: dict[str, Any] = field(default_factory=dict)
 
     annotations: AnnotationSet = field(default_factory=AnnotationSet)
 
@@ -51,5 +54,6 @@ class Domain:
             start=data["start"],
             end=data["end"],
             sequence=data["sequence"],
+            raw_qualifiers=data.get("raw_qualifiers", {}),
             annotations=annotations,
         )

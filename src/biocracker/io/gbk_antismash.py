@@ -164,6 +164,7 @@ def _domain_rec_from_feat(feat: SeqFeature) -> Domain:
         start=s,
         end=e,
         sequence=aa_seq,
+        raw_qualifiers={k: v for k, v in feat.qualifiers.items()},
     )
 
 

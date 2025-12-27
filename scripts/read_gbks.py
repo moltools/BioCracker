@@ -6,7 +6,7 @@ import os
 from biocracker.utils.logging import setup_logging, add_file_handler
 from biocracker.utils.json import iter_json
 from biocracker.model.region import Region
-from biocracker.query.modules import linear_readout
+from biocracker.query.modules import LinearReadout, linear_readout
 
 
 def cli() -> argparse.Namespace:
@@ -31,10 +31,26 @@ def main() -> None:
     setup_logging(level="INFO")
     add_file_handler(os.path.join(args.out, "read_gbks.log"), level="INFO")
 
+    readouts: list[LinearReadout] = []
     for region_record in iter_json(args.jsonl, jsonl=True):
         region = Region.from_dict(region_record)
         readout = linear_readout(region)
-        print(readout)
+        readouts.append(readout)
+
+    print(f"Parsed {len(readouts)} linear readouts in total") 
+
+    # Sort on readout ID
+    readouts.sort(key=lambda r: r.id)
+
+    # Only keep readouts with >= 2 modules
+    readouts = [r for r in readouts if len(r.modules) >= 2]
+    print(f"Parsed {len(readouts)} linear readouts with >= 2 modules")
+
+    # Get specific readout
+    readout_ids = ["BGC0000055", "BGC0000336"]
+    specific_readouts = [r for r in readouts if r.id in readout_ids]
+    for specific_readout in specific_readouts:
+        print(f"Specific readout {specific_readout.id}: {specific_readout}")
     
 
 if __name__ == "__main__":
