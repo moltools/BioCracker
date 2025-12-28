@@ -6,6 +6,7 @@ import shutil
 import tarfile
 import tempfile
 import zipfile
+import gzip
 from hashlib import sha256
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -223,6 +224,7 @@ def download_and_prepare(url: str, cache_dir: str | Path | None = None, *, force
     .. note:: function is idempotent unless `force=True`
     .. note:: handles ZIP archives; other archive formats are not auto-detected
     .. note:: intermediate files are removed on success
+    :raises RuntimeError: if extraction fails
     """
     base_cache = get_biocracker_cache_dir(cache_dir)
     downloads_root = base_cache / "downloads"
@@ -253,35 +255,38 @@ def download_and_prepare(url: str, cache_dir: str | Path | None = None, *, force
         if need_download:
             _download_with_progress(url, archive_path)
 
-        # If it's a ZIP archive, extract and remove the archive afterwards
-        # (We consider "auto-clean" to mean removing the downloaded container if we extracted.)
-        if zipfile.is_zipfile(archive_path):
-            # If it's an archive, extract and remove the archive afterwards
-            extract_dir = item_dir / "extracted"
-            if extract_dir.exists() and (force or extract_dir.stat().st_size == 0):
-                shutil.rmtree(extract_dir)
-            if zipfile.is_zipfile(archive_path) or tarfile.is_tarfile(archive_path):
-                extract_dir.mkdir(parents=True, exist_ok=True)
-                # Try auto; if that fails, fall back to explicit formats
+        extract_dir = item_dir / "extracted"
+        
+        is_zip = zipfile.is_zipfile(archive_path)
+        is_tar = tarfile.is_tarfile(archive_path)
+        is_gz = archive_path.suffix.lower() == ".gz" and not is_tar
+
+        if is_zip or is_tar or is_gz:
+            if extract_dir.exists() and force:
+                shutil.rmtree(extract_dir, ignore_errors=True)
+            extract_dir.mkdir(parents=True, exist_ok=True)
+
+            if is_gz:
+                # gunzip
+                out_path = extract_dir / archive_path.with_suffix("").name
+                with gzip.open(archive_path, "rb") as fin, open(out_path, "wb") as fout:
+                    shutil.copyfileobj(fin, fout, length=1024 * 1024)
+            
+            else:
                 try:
                     shutil.unpack_archive(str(archive_path), str(extract_dir))
                 except shutil.ReadError:
-                    if zipfile.is_zipfile(archive_path):
+                    if is_zip:
                         with zipfile.ZipFile(archive_path, "r") as zf:
                             zf.extractall(extract_dir)
-                    elif tarfile.is_tarfile(archive_path):
+                    elif is_tar:
                         with tarfile.open(archive_path, "r:*") as tf:
                             tf.extractall(extract_dir)
                     else:
-                        raise
-                # Remove the container after successful extraction
-                try:
-                    archive_path.unlink()
-                except Exception:
-                    pass
+                        raise RuntimeError("unrecognized archive format despite prior checks")
+        
         else:
-            # Non-archive: keep the file in place as the final payload
-            # (No-op)
+        # Non-archive: keep the file
             pass
 
         # Mark URL and READY
