@@ -310,6 +310,7 @@ class PKSSubstrate:
     """
 
     extender_unit: PKSExtenderUnit
+    substituent_type: int | None = None
 
     def to_dict(self) -> dict[str, str]:
         """
@@ -319,6 +320,7 @@ class PKSSubstrate:
         """
         return {
             "extender_unit": self.extender_unit.value,
+            "substituent_type": self.substituent_type,
         }
     
     @classmethod
@@ -331,6 +333,7 @@ class PKSSubstrate:
         """
         return cls(
             extender_unit=PKSExtenderUnit(data.get("extender_unit", "UNCLASSIFIED")),
+            substituent_type=data.get("substituent_type", None),
         )
 
 
@@ -438,6 +441,10 @@ class PKSModule(Module):
 
         :return: PKSSubstrate object containing substrate information
         """
+        # Configure factory type
+        def setup_substrate(extender_unit: PKSExtenderUnit) -> PKSSubstrate:
+            return PKSSubstrate(extender_unit=extender_unit)
+
         # Rules:
         # - KS + AT with neither KR nor DH nor ER => PKS_A
         # - KS + AT + KR (no DH and no ER) => PKS_B (KR after AT is naturally true in window order)
@@ -448,11 +455,11 @@ class PKSModule(Module):
             self.anatomy.has_active_DH,
             self.anatomy.has_active_ER,
         ):
-            case (False, False, False ): return PKSExtenderUnit.PKS_A
-            case (True,  False, False ): return PKSExtenderUnit.PKS_B
-            case (True,  True,  False ): return PKSExtenderUnit.PKS_C
-            case (True,  True,  True  ): return PKSExtenderUnit.PKS_D
-            case _:                      return PKSExtenderUnit.UNCLASSIFIED
+            case (False, False, False ): return setup_substrate(PKSExtenderUnit.PKS_A)
+            case (True,  False, False ): return setup_substrate(PKSExtenderUnit.PKS_B)
+            case (True,  True,  False ): return setup_substrate(PKSExtenderUnit.PKS_C)
+            case (True,  True,  True  ): return setup_substrate(PKSExtenderUnit.PKS_D)
+            case _:                      return setup_substrate(PKSExtenderUnit.UNCLASSIFIED)
 
     def to_dict(self) -> dict[str, Any]:
         """
