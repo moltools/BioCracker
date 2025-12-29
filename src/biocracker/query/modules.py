@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, Literal, overload
 
 from biocracker.model.region import Region
 from biocracker.model.gene import Gene, Strand
@@ -450,15 +450,17 @@ class PKSModule(Module):
         # - KS + AT + KR (no DH and no ER) => PKS_B (KR after AT is naturally true in window order)
         # - KS + AT + KR + DH (no ER) => PKS_C
         # - KS + AT + KR + DH + ER => PKS_D
+        # - else UNCLASSIFIED
+        # Note: assumes that presence of AT domain is already established
         match (
             self.anatomy.has_active_KR,
             self.anatomy.has_active_DH,
             self.anatomy.has_active_ER,
         ):
-            case (False, False, False ): return setup_substrate(PKSExtenderUnit.PKS_A)
-            case (True,  False, False ): return setup_substrate(PKSExtenderUnit.PKS_B)
-            case (True,  True,  False ): return setup_substrate(PKSExtenderUnit.PKS_C)
             case (True,  True,  True  ): return setup_substrate(PKSExtenderUnit.PKS_D)
+            case (True,  True,  False ): return setup_substrate(PKSExtenderUnit.PKS_C)
+            case (True,  _,     _     ): return setup_substrate(PKSExtenderUnit.PKS_B)  # presence of ER doesn't matter if DH is not present
+            case (False, _,     _     ): return setup_substrate(PKSExtenderUnit.PKS_A)  # presence of DH/ER doesn't matter if no KR
             case _:                      return setup_substrate(PKSExtenderUnit.UNCLASSIFIED)
 
     def to_dict(self) -> dict[str, Any]:
@@ -519,6 +521,7 @@ class LinearReadout:
     qualifiers: dict[str, Any] = field(default_factory=dict)
 
     modules: list[Module] = field(default_factory=list)
+    modifiers: list[str] = field(default_factory=list)
 
     def __str__(self) -> str:
         """
@@ -540,6 +543,7 @@ class LinearReadout:
             "end": self.end,
             "qualifiers": self.qualifiers,
             "modules": [module.to_dict() for module in self.modules],
+            "modifiers": self.modifiers,
         }
     
     @classmethod
@@ -568,14 +572,20 @@ class LinearReadout:
             end=data["end"],
             qualifiers=data.get("qualifiers", {}),
             modules=modules,
+            modifiers=data.get("modifiers", []),
         )
     
-    def biosynthetic_order(self) -> list[Module]:
+    @overload
+    def biosynthetic_order(self, by_orf: Literal[False] = False) -> list[Module]: ...
+    @overload
+    def biosynthetic_order(self, by_orf: Literal[True] = True) -> list[tuple[str, list[Module]]]: ...
+
+    def biosynthetic_order(self, by_orf: bool = False):
         """
         Return modules in biosynthetic order.
 
-        :param orientation: 'forward' for 5' to 3', 'reverse' for 3' to 5'
-        :return: list of Module objects in the specified order
+        :param by_orf: if True, group modules by their originating gene (ORF)
+        :return: list of Module objects in biosynthetic order, or list of tuples (gene_id, list of Module) if by_orf is True
         """
         if not self.modules:
             return []
@@ -604,6 +614,19 @@ class LinearReadout:
             reverse=global_reverse,
         )
 
+        if by_orf:
+            grouped: list[tuple[str, list[Module]]] = []
+            for gid in gene_ids:
+                mods = by_gene[gid]
+                if gene_strand[gid] is Strand.FORWARD:
+                    mods_sorted = sorted(mods, key=lambda m: m.start)
+                else:
+                    mods_sorted = sorted(mods, key=lambda m: m.start, reverse=True)
+                grouped.append((gid, mods_sorted))
+
+            return grouped
+
+        # Flatten modules in biosynthetic order
         out: list[Module] = []
         for gid in gene_ids:
             mods = by_gene[gid]
@@ -1180,6 +1203,7 @@ def linear_readout(region: Region) -> LinearReadout:
     assert isinstance(region, Region), "region must be an instance of Region"
 
     collected: list[Module] = []
+    modifiers: list[str] = []
 
     for gi, gene in enumerate(region.iter_genes()):
 
@@ -1191,10 +1215,17 @@ def linear_readout(region: Region) -> LinearReadout:
         pks_modules = collect_pks_modules(gene, gi, region.genes)
         collected.extend(pks_modules)
 
+        # Check if there are any gene-level modifiers
+        if gene.annotations:
+            for result in gene.annotations.results:
+                label = result.label
+                modifiers.append(label)
+
     return LinearReadout(
         id=region.id,
         start=region.start,
         end=region.end,
         qualifiers=region.qualifiers,
-        modules=collected
+        modules=collected,
+        modifiers=modifiers,
     )
