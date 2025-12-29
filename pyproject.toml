@@ -16,7 +16,8 @@ keywords = ["parser", "antismash"]
 dependencies = [
     "biopython",
     "joblib",
-    "tqdm"
+    "tqdm",
+    "pyhmmer"
 ]
 
 classifiers = [
