@@ -41,9 +41,9 @@ def pprint_module(module: PKSModule | NRPSModule) -> str:
     :return: string representation of the module
     """
     if isinstance(module, PKSModule):
-        return f"PKS Module: role={module.role}, extender_unit={module.substrate.extender_unit.value}, AT_loading_mode={module.anatomy.AT_loading_mode}"
+        return f"PKS Module: extender_unit={module.substrate.extender_unit.value}, AT_loading_mode={module.anatomy.AT_loading_mode}"
     elif isinstance(module, NRPSModule):
-        return f"NRPS Module: role={module.role}, substrate={module.substrate.name}"
+        return f"NRPS Module: substrate={module.substrate.name}"
     else:
         return "Unknown Module"
 
