@@ -54,7 +54,7 @@ def main() -> None:
     setup_logging(logging.INFO)
 
     # Register domain and gene models
-    register_domain_model(ParasModel(cache_dir=args.cache, threshold=0.1, keep_top=3))
+    register_domain_model(ParasModel(threshold=0.1, keep_top=3, cache_dir=args.cache))
 
     if args.hmms:
         hmm_files = glob.glob(os.path.join(args.hmms, "*.hmm"))

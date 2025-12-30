@@ -3,7 +3,7 @@ name = "biocracker"
 version = "1.1.1"
 description = "BioCracker is a parser for antiSMASH output GenBank files"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.12"
 license = "MIT"
 license-files = [
     "LICENSE",
@@ -14,10 +14,12 @@ authors = [
 keywords = ["parser", "antismash"]
 
 dependencies = [
+    "paras @ git+https://github.com/bthedragonmaster/parasect.git@v2.0.0",
     "biopython",
     "joblib",
     "tqdm",
-    "pyhmmer"
+    "pyhmmer",
+    "ijson"
 ]
 
 classifiers = [
@@ -28,7 +30,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Bio-Informatics"
 ]
 

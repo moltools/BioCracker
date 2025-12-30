@@ -10,7 +10,6 @@ from typing import Any
 import joblib
 import numpy as np
 from pyhmmer import easel, plan7, hmmer
-from sklearn.ensemble import RandomForestClassifier
 
 import biocracker.data
 from biocracker.inference.base import DomainInferenceModel
@@ -26,7 +25,8 @@ PARAS_CACHE_DIR = os.getenv("PARAS_CACHE_DIR", "paras_cache")
 PARAS_DOWNLOAD_URL = "https://zenodo.org/records/17224548/files/all_substrates_model.paras.gz?download=1"
 
 
-_PARAS_MODEL_CACHE: dict[str, object] = {}
+_PARAS_MODEL_PATH_CACHE: dict[str, Path] = {}
+_PARAS_MODEL_OBJ_CACHE: dict[str, object] = {}
 
 
 HMM_DB_PATH = str(files(biocracker.data).joinpath("AMP-binding_converted.hmm"))
@@ -683,23 +683,63 @@ def featurize_signature(sig: str) -> np.ndarray:
     return features.flatten()  # shape (n_positions * n_features,)
 
 
-def load_paras_model(cache_dir: Path) -> RandomForestClassifier:
+def get_paras_model_path(cache_dir: Path) -> Path:
     """
-    Load the PARAS model from disk (cached in memory for reuse).
+    Get the path to the cached PARAS model, downloading it if necessary.
 
     :param cache_dir: Path to the cache directory
-    :return: loaded PARAS model
+    :return: Path to the PARAS model file
     """
-    global _PARAS_MODEL_CACHE
+    cache_dir = Path(cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
 
-    # If model already loaded, return it immediately
-    if PARAS_DOWNLOAD_URL in _PARAS_MODEL_CACHE:
-        return _PARAS_MODEL_CACHE[PARAS_DOWNLOAD_URL]
-
-    # Otherwise, ensure the file is downloaded and load it
+    # If we already know the path and it still exists, reuse it
+    cached = _PARAS_MODEL_PATH_CACHE.get(PARAS_DOWNLOAD_URL)
+    if cached is not None and cached.exists():
+        return cached
+    
+    # Otherwise download/prepare and remember the path
     model_path = download_and_prepare(PARAS_DOWNLOAD_URL, cache_dir)
-    model = joblib.load(model_path)
-    _PARAS_MODEL_CACHE[PARAS_DOWNLOAD_URL] = model
+    _PARAS_MODEL_PATH_CACHE[PARAS_DOWNLOAD_URL] = model_path
+    return model_path
+
+
+def resolve_paras_model_path(model_path: Path | None, cache_dir: Path) -> Path:
+    """
+    Resolve the PARAS model path, downloading it to cache if necessary.
+
+    :param model_path: user-specified model path or None
+    :param cache_dir: Path to the cache directory
+    :return: Path to the PARAS model file
+    """
+    cache_dir = Path(cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    if model_path is not None:
+        model_path = Path(model_path).expanduser().resolve()
+        if not model_path.exists():
+            raise FileNotFoundError(f"specified PARAS model path does not exist: {model_path}")
+        return model_path
+    
+    # No model given -> download/prepare in cache dir
+    return Path(download_and_prepare(PARAS_DOWNLOAD_URL, cache_dir))
+
+
+def load_paras_model(model_path: Path) -> object:
+    """
+    Load the PARAS model from the given path.
+
+    :param model_path: Path to the PARAS model file
+    :return: loaded RandomForestClassifier model
+    """
+    key = str(model_path)
+    model = _PARAS_MODEL_OBJ_CACHE.get(key)
+    
+    if model is None:
+        log.info(f"loading PARAS model: {model_path}")
+        model = joblib.load(model_path)
+        _PARAS_MODEL_OBJ_CACHE[key] = model
+    
     return model
 
 
@@ -714,12 +754,20 @@ class ParasModel(DomainInferenceModel):
 
     name: str = "paras"
 
-    def __init__(self, cache_dir: Path | str | None = None, threshold: float = 0.1, keep_top: int = 3) -> None:
+    def __init__(
+        self,
+        threshold: float = 0.1,
+        keep_top: int = 3,
+        cache_dir: Path | str | None = None,
+        model_path: Path | str | None = None,
+    ) -> None:
         """
         Initialize the ParasModel.
 
-        :param cache_dir: directory to cache the model
         :param threshold: probability threshold for predictions
+        :param keep_top: number of top predictions to keep
+        :param cache_dir: directory to cache the model
+        :param model_path: path to a custom PARAS model file
         """
         super().__init__()
         
@@ -727,6 +775,7 @@ class ParasModel(DomainInferenceModel):
         if cache_dir is None:
             cache_dir = PARAS_CACHE_DIR
         self.cache_dir = Path(cache_dir)
+        self.model_path = Path(model_path) if model_path is not None else None
 
         # Set other parameters
         self.threshold = threshold
@@ -758,8 +807,8 @@ class ParasModel(DomainInferenceModel):
         """
         if domain.type == "AMP-binding":
             # Prepare model
-            cache_dir = Path(self.cache_dir)
-            model = load_paras_model(cache_dir)
+            model_file = resolve_paras_model_path(self.model_path, self.cache_dir)
+            model = load_paras_model(model_file)
 
             # Find A domains in the sequence
             a_domains = find_a_domains(seq_id=domain.id, protein_seq=domain.sequence)
