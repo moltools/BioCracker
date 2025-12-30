@@ -1,9 +1,9 @@
 [project]
 name = "biocracker"
-version = "1.1.1"
+version = "2.0.0"
 description = "BioCracker is a parser for antiSMASH output GenBank files"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.12"
 license = "MIT"
 license-files = [
     "LICENSE",
@@ -14,9 +14,12 @@ authors = [
 keywords = ["parser", "antismash"]
 
 dependencies = [
+    "paras @ git+https://github.com/bthedragonmaster/parasect.git@v2.0.0",
     "biopython",
     "joblib",
-    "tqdm"
+    "tqdm",
+    "pyhmmer",
+    "ijson"
 ]
 
 classifiers = [
@@ -27,7 +30,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Bio-Informatics"
 ]
 
@@ -53,6 +55,9 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["src/biocracker"]
 sources = ["src"]
+include = [
+    "src/retromol/data/AMP-binding_converted.hmm"
+]
 
 # -------------------------
 # Hatch env + scripts
