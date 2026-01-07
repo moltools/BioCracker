@@ -14,7 +14,8 @@ authors = [
 keywords = ["parser", "antismash"]
 
 dependencies = [
-    "paras @ git+https://github.com/bthedragonmaster/parasect.git@v2.0.0",
+    "scikit-learn==1.2.0",
+    "numpy==1.23.0",
     "biopython",
     "joblib",
     "tqdm",

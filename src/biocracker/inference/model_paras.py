@@ -370,7 +370,7 @@ LABEL_TO_SMILES = {
     "glutamine": r"C(CC(=O)N)[C@@H](C(=O)O)N",
     "glycine": r"NCC(=O)O",
     "glycolic acid": r"C(C(=O)O)O",
-    "graminine": r"O=NN(O)CCC[C@H](N)(C(=O)O",
+    "graminine": r"O=NN(O)CCC[C@H](N)(C(=O)O)",
     "grifolic acid": r"CC(C)=CCC/C(C)=C/CC/C(C)=C/CC1=C(O)C=C(C)C(C(=O)O)=C(O)1",
     "guanidinoacetic acid": r"C(C(=O)O)N=C(N)N",
     "histidine": r"C1=C(NC=N1)C[C@@H](C(=O)O)N",
