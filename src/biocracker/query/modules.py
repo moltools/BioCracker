@@ -521,6 +521,15 @@ class LinearReadout:
         """
         return f"LinearReadout(id={self.id}, start={self.start}, end={self.end}, modules={len(self.modules)})"
     
+    @property
+    def num_modules(self) -> int:
+        """
+        Get the number of modules in the linear readout.
+
+        :return: number of modules
+        """
+        return len(self.modules)
+    
     def to_dict(self) -> dict[str, Any]:
         """
         Convert the LinearReadout object to a dictionary representation.

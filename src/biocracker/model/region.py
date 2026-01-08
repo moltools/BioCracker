@@ -12,6 +12,7 @@ class Region:
     Represents a biological region containing multiple genes.
     
     :param id: the unique identifier of the region
+    :param file_name: the name of the file from which the region was parsed
     :param start: the starting position of the region within the sequence
     :param end: the ending position of the region within the sequence
     :param qualifiers: additional metadata or qualifiers associated with the region
@@ -19,6 +20,7 @@ class Region:
     """
 
     id: str
+    file_name: str
     start: int
     end: int
     qualifiers: dict[str, Any] = field(default_factory=dict)
@@ -53,6 +55,7 @@ class Region:
         genes = [Gene.from_dict(gene_data) for gene_data in data.get("genes", [])]
         return cls(
             id=data["id"],
+            file_name=data["file_name"],
             start=data["start"],
             end=data["end"],
             qualifiers=data.get("qualifiers", {}),

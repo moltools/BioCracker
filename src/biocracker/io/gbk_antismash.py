@@ -168,14 +168,24 @@ def _domain_rec_from_feat(feat: SeqFeature) -> Domain:
     )
 
 
-def collect_antismash_regions(record: SeqRecord, options: AntiSmashOptions) -> list[Region]:
+def collect_antismash_regions(
+    input_file_path: Path | str,
+    record: SeqRecord,
+    options: AntiSmashOptions
+) -> list[Region]:
     """
     Collect antiSMASH regions from a GenBank record.
 
+    :param input_file_path: path to the GenBank file
     :param record: GenBank record
     :param options: parsing options
     :return: list of parsed regions
     """
+    # Get the file name without extension
+    if isinstance(input_file_path, str):
+        input_file_path = Path(input_file_path)
+    file_name = input_file_path.stem
+
     regions = _iter_regions(record, readout_level=options.readout_level)
     cds_list = _iter_cds(record, gene_identifiers=options.gene_identifiers)
     dom_list = _iter_domains(record, domain_identifiers=options.domain_identifiers)
@@ -210,6 +220,7 @@ def collect_antismash_regions(record: SeqRecord, options: AntiSmashOptions) -> l
 
         region_recs.append(Region(
             id=record.id,
+            file_name=file_name,
             start=rs,
             end=re,
             qualifiers=found_qualifiers,
@@ -232,7 +243,7 @@ def parse_antismash_gbk(path: Path, options: AntiSmashOptions) -> list:
 
     with open(path) as handle:
         for record in SeqIO.parse(handle, "genbank"):
-            out.extend(collect_antismash_regions(record, options))
+            out.extend(collect_antismash_regions(path, record, options))
 
     return out
     

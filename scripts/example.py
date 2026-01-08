@@ -75,9 +75,11 @@ def main() -> None:
 
     # Output some information about the parsed regions
     for region in regions:
+        print("region id:", region.id, sep="\t")
+        print("file name:", region.file_name, sep="\t")
         readout = linear_readout(region)
         log.info(readout)
-        log.info(set(readout.modifiers))
+        log.info(readout.modifiers)
         result = readout.biosynthetic_order(by_orf=args.by_orf)
         if args.by_orf:
             for gene_id, modules in result:
