@@ -499,6 +499,7 @@ class LinearReadout:
     A linear readout consisting of a sequence of modules.
     
     :param id: unique identifier for the linear readout
+    :param file_name: source file name from which the linear readout was derived
     :param start: starting position of the linear readout
     :param end: ending position of the linear readout
     :param qualifiers: additional metadata or qualifiers associated with the linear readout
@@ -506,6 +507,7 @@ class LinearReadout:
     """
     
     id: str
+    file_name: str
     start: int
     end: int
     qualifiers: dict[str, Any] = field(default_factory=dict)
@@ -538,6 +540,7 @@ class LinearReadout:
         """
         return {
             "id": self.id,
+            "file_name": self.file_name,
             "start": self.start,
             "end": self.end,
             "qualifiers": self.qualifiers,
@@ -567,6 +570,7 @@ class LinearReadout:
 
         return cls(
             id=data["id"],
+            file_name=data["file_name"],
             start=data["start"],
             end=data["end"],
             qualifiers=data.get("qualifiers", {}),
@@ -1018,6 +1022,7 @@ def linear_readout(region: Region) -> LinearReadout:
 
     return LinearReadout(
         id=region.id,
+        file_name=region.file_name,
         start=region.start,
         end=region.end,
         qualifiers=region.qualifiers,
