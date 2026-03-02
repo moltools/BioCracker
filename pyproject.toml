@@ -57,7 +57,7 @@ allow-direct-references = true
 packages = ["src/biocracker"]
 sources = ["src"]
 include = [
-    "src/retromol/data/AMP-binding_converted.hmm"
+    "src/biocracker/data/AMP-binding_converted.hmm"
 ]
 
 [project.scripts]
