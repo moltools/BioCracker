@@ -60,6 +60,9 @@ include = [
     "src/retromol/data/AMP-binding_converted.hmm"
 ]
 
+[project.scripts]
+biocracker = "biocracker.cli:main"
+
 # -------------------------
 # Hatch env + scripts
 # -------------------------
