@@ -405,9 +405,14 @@ class PKSModule(Module):
     """
     Polyketide synthase (PKS) module.
 
+    :ks_start: starting position of the KS domain anchoring the PKS module
+    :ks_end: ending position of the KS domain anchoring the PKS module
     :param type: module type (PKS)
     :param anatomy: anatomical features of the PKS module
     """
+
+    ks_start: int
+    ks_end: int
 
     anatomy: PKSAnatomy
 
@@ -980,6 +985,8 @@ def collect_pks_modules(region: Region, max_cross_gene_bp: int = 20_000) -> list
             module_index_in_gene=mi,
             start=s,
             end=e,
+            ks_start=ks.start,
+            ks_end=ks.end,
             gene_id=gid,
             gene_strand=ks_ref.gene.strand,
             present_domains=list(present),
