@@ -922,7 +922,7 @@ def collect_pks_modules(region: Region, max_cross_gene_bp: int = 20_000) -> list
         ks_ref = stream[start_idx]
         ks = ks_ref.domain
 
-        # Cancidate window: KS -> next KS (exclusive)
+        # Candidate window: KS -> next KS (exclusive)
         window_refs = stream[start_idx:end_idx]
 
         # Don't vaccum up far-away stuff
